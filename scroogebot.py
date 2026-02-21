@@ -6,7 +6,13 @@ from loguru import logger
 
 
 class _InterceptHandler(logging.Handler):
-    """Route stdlib logging calls into loguru."""
+    """
+    Route stdlib logging calls into loguru.
+    Python's ecosystem has two parallel logging worlds: the stdlib logging module (used by every library — SQLAlchemy, httpx, python-telegram-bot, APScheduler) and loguru (used 
+  by your application code). They don't talk to each other by default.                                                                                                         
+
+  _InterceptHandler bridges them: it installs itself as the single stdlib handler, and every stdlib logging.LogRecord that arrives gets forwarded into loguru. This gives you
+  one unified log stream with consistent formatting, rotation, and retention."""
 
     def emit(self, record: logging.LogRecord) -> None:
         try:
