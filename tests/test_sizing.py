@@ -106,3 +106,97 @@ def test_broker_get_price_delegates_to_provider():
     with patch.object(broker._provider, "get_current_price", return_value=mock_price):
         result = broker.get_price("SAN.MC")
     assert result.price == Decimal("100.0")
+
+
+import math
+from src.sizing.engine import calculate_sizing
+
+
+def _mock_broker_engine(precio=10.0, atr=0.5, currency="EUR"):
+    """Helper: mock broker that returns fixed price/atr, fixed €2 commission."""
+    from unittest.mock import MagicMock
+    from decimal import Decimal
+    from src.sizing.models import CommissionStructure
+    broker = MagicMock()
+    price_obj = MagicMock()
+    price_obj.price = Decimal(str(precio))
+    price_obj.currency = currency
+    broker.get_price.return_value = price_obj
+    broker.get_atr.return_value = Decimal(str(atr))
+    broker.get_fx_rate.return_value = Decimal("1")
+    broker.commissions = CommissionStructure(comision_fija=2.0)
+    broker.name = "degiro"
+    return broker
+
+
+def test_sizing_manual_stop_sets_tipo():
+    broker = _mock_broker_engine(precio=10.0, atr=0.5)
+    result = calculate_sizing("SAN.MC", stop_loss_manual=9.0, broker=broker)
+    assert result.stop_tipo == "manual"
+    assert result.stop_loss == pytest.approx(9.0)
+    assert result.distancia == pytest.approx(1.0)
+
+
+def test_sizing_auto_stop_uses_atr():
+    broker = _mock_broker_engine(precio=10.0, atr=0.5)
+    result = calculate_sizing("SAN.MC", stop_loss_manual=None, broker=broker)
+    assert result.stop_tipo == "ATR×2"
+    assert result.stop_loss == pytest.approx(9.0)  # 10.0 - 2*0.5
+
+
+def test_sizing_limited_by_riesgo():
+    # precio=10, stop=9, distancia=1
+    # riesgo_max=150, com_c=2, com_v=2 → riesgo_disp=146
+    # acciones_riesgo = floor(146/1) = 146
+    # acciones_nominal = floor(4000/10) = 400
+    # min(146, 400) = 146 → limited by riesgo
+    broker = _mock_broker_engine(precio=10.0, atr=0.5)
+    result = calculate_sizing("SAN.MC", stop_loss_manual=9.0, broker=broker)
+    assert result.acciones == 146
+    assert result.factor_limite == "riesgo"
+
+
+def test_sizing_limited_by_nominal():
+    # precio=100, stop=99, distancia=1
+    # riesgo_max=150, com=4 → riesgo_disp=146 → acciones_riesgo=146
+    # acciones_nominal = floor(4000/100) = 40
+    # min(146, 40) = 40 → limited by nominal
+    broker = _mock_broker_engine(precio=100.0, atr=1.0)
+    result = calculate_sizing("AAPL", stop_loss_manual=99.0, broker=broker)
+    assert result.acciones == 40
+    assert result.factor_limite == "nominal"
+
+
+def test_sizing_stop_muy_alejado_genera_aviso():
+    # stop 20% below price → distancia_pct=20 > 15 threshold
+    broker = _mock_broker_engine(precio=10.0, atr=0.5)
+    result = calculate_sizing("SAN.MC", stop_loss_manual=8.0, broker=broker)
+    assert result.aviso is not None
+    assert "alejado" in result.aviso.lower()
+
+
+def test_sizing_riesgo_real_no_excede_maximo():
+    broker = _mock_broker_engine(precio=10.0, atr=0.5)
+    result = calculate_sizing("SAN.MC", stop_loss_manual=9.0, broker=broker)
+    # riesgo_real = acciones*distancia + com_compra + com_venta
+    # = 146*1 + 2 + 2 = 150
+    assert result.riesgo_real <= result.riesgo_maximo + 0.01
+
+
+def test_sizing_pct_commission_iterative_convergence():
+    """MyInvestor 0.12%, min 3, max 25: riesgo_real must not exceed riesgo_max."""
+    from unittest.mock import MagicMock
+    from decimal import Decimal
+    from src.sizing.models import CommissionStructure
+    broker = MagicMock()
+    price_obj = MagicMock()
+    price_obj.price = Decimal("50.0")
+    price_obj.currency = "EUR"
+    broker.get_price.return_value = price_obj
+    broker.get_atr.return_value = Decimal("1.0")
+    broker.get_fx_rate.return_value = Decimal("1")
+    broker.commissions = CommissionStructure(comision_pct=0.12, comision_minima=3.0, comision_maxima=25.0)
+    broker.name = "myinvestor"
+    result = calculate_sizing("MSFT", stop_loss_manual=48.0, broker=broker)
+    assert result.riesgo_real <= result.riesgo_maximo + 0.01
+    assert result.acciones >= 0
