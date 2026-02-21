@@ -30,11 +30,18 @@ class YahooDataProvider(DataProvider):
     def get_atr(self, ticker: str, period: int = 14) -> Decimal:
         ohlcv = self.get_historical(ticker, period="3mo", interval="1d")
         df = ohlcv.data
+        if len(df) < period:
+            raise ValueError(
+                f"Historial insuficiente para ATR({period}): "
+                f"{ticker} solo tiene {len(df)} día(s) de datos"
+            )
         atr_series = ta.volatility.AverageTrueRange(
             high=df["High"], low=df["Low"], close=df["Close"], window=period
         ).average_true_range()
-        last = atr_series.dropna().iloc[-1]
-        return Decimal(str(round(float(last), 4)))
+        clean = atr_series.dropna()
+        if clean.empty:
+            raise ValueError(f"ATR({period}) no calculable para {ticker}")
+        return Decimal(str(round(float(clean.iloc[-1]), 4)))
 
     def search_yahoo(self, query: str, max_results: int = 8) -> list:
         """Search Yahoo Finance by name or ticker. Returns list[SearchResult]."""
