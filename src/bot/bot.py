@@ -1,15 +1,105 @@
 import logging
+from datetime import datetime
+from decimal import Decimal
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from telegram.ext import Application
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import Application, CallbackQueryHandler
 
 from src.config import settings, app_config
 from src.bot.handlers.portfolio import get_handlers as portfolio_handlers
 from src.bot.handlers.orders import get_handlers as order_handlers
 from src.bot.handlers.baskets import get_handlers as basket_handlers
 from src.bot.handlers.analysis import get_handlers as analysis_handlers
+from src.bot.handlers.admin import get_handlers as admin_handlers
 from src.alerts.engine import AlertEngine
 
 logger = logging.getLogger(__name__)
+
+
+async def handle_alert_callback(update: Update, context) -> None:
+    query = update.callback_query
+    await query.answer()
+    parts = query.data.split(":")
+    if len(parts) != 3 or parts[0] != "alert":
+        return
+
+    action, alert_id = parts[1], int(parts[2])
+
+    from src.db.base import async_session_factory
+    from src.db.models import Alert, Asset, Basket, Position, User
+    from src.data.yahoo import YahooDataProvider
+    from src.orders.paper import PaperTradingExecutor
+    from sqlalchemy import select
+
+    async with async_session_factory() as session:
+        alert = await session.get(Alert, alert_id)
+        if not alert or alert.status != "PENDING":
+            await query.edit_message_text("Esta alerta ya fue procesada.")
+            return
+
+        asset = await session.get(Asset, alert.asset_id)
+        basket = await session.get(Basket, alert.basket_id)
+        user_result = await session.execute(
+            select(User).where(User.tg_id == query.from_user.id)
+        )
+        user = user_result.scalar_one_or_none()
+        if not user:
+            await query.answer("Usa /start primero.", show_alert=True)
+            return
+
+        if action == "reject":
+            alert.status = "REJECTED"
+            alert.resolved_at = datetime.utcnow()
+            await session.commit()
+            await query.edit_message_text(f"❌ Alerta rechazada: {asset.ticker}")
+            return
+
+        if action == "confirm":
+            try:
+                provider = YahooDataProvider()
+                price = provider.get_current_price(asset.ticker).price
+                executor = PaperTradingExecutor()
+
+                if alert.signal == "SELL":
+                    pos_result = await session.execute(
+                        select(Position).where(
+                            Position.basket_id == basket.id,
+                            Position.asset_id == asset.id,
+                        )
+                    )
+                    pos = pos_result.scalar_one_or_none()
+                    qty = pos.quantity if pos else Decimal("0")
+                    if qty > 0:
+                        await executor.sell(
+                            session, basket.id, asset.id, user.id,
+                            asset.ticker, qty, price,
+                        )
+                    else:
+                        await query.edit_message_text("Sin posición para vender.")
+                        return
+
+                elif alert.signal == "BUY":
+                    # Invest up to 10% of available cash
+                    qty = (basket.cash * Decimal("0.10") / price).quantize(Decimal("0.01"))
+                    if qty > 0:
+                        await executor.buy(
+                            session, basket.id, asset.id, user.id,
+                            asset.ticker, qty, price,
+                        )
+                    else:
+                        await query.edit_message_text("Cash insuficiente.")
+                        return
+
+                alert.status = "CONFIRMED"
+                alert.resolved_at = datetime.utcnow()
+                await session.commit()
+                await query.edit_message_text(
+                    f"✅ {alert.signal} {asset.ticker} ejecutado a {price:.2f}"
+                )
+            except Exception as e:
+                logger.error(f"Alert execution error: {e}")
+                await query.edit_message_text(f"❌ Error: {e}")
 
 
 async def run() -> None:
@@ -23,6 +113,10 @@ async def run() -> None:
         app.add_handler(handler)
     for handler in analysis_handlers():
         app.add_handler(handler)
+    for handler in admin_handlers():
+        app.add_handler(handler)
+
+    app.add_handler(CallbackQueryHandler(handle_alert_callback, pattern="^alert:"))
 
     alert_engine = AlertEngine(telegram_app=app)
     scheduler = AsyncIOScheduler()

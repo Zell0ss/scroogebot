@@ -89,6 +89,41 @@ class AlertEngine:
                 await session.commit()
 
     async def _notify(self, alert: Alert, basket_name: str, ticker: str) -> None:
-        """Notify all basket members. Full implementation in Task 4 (roles)."""
-        logger.info(f"ALERT [{alert.signal}] {ticker} in {basket_name}: {alert.reason}")
-        # Telegram notification added in Task 4
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        from src.db.models import BasketMember, User
+
+        if not self.app:
+            logger.warning("No telegram app set — cannot send notifications")
+            return
+
+        async with async_session_factory() as session:
+            result = await session.execute(
+                select(BasketMember, User)
+                .join(User, BasketMember.user_id == User.id)
+                .where(BasketMember.basket_id == alert.basket_id)
+            )
+            members = result.all()
+
+        icon = "⚠️" if alert.signal == "SELL" else "💡"
+        verb = "VENTA" if alert.signal == "SELL" else "COMPRA"
+        color = "🔴" if alert.signal == "SELL" else "🟢"
+        text = (
+            f"{icon} *{basket_name}* — {alert.strategy}\n\n"
+            f"{color} {verb}: *{ticker}*\n"
+            f"Precio: {alert.price:.2f}\n"
+            f"Razón: {alert.reason}\n\n"
+            f"¿Ejecutar {verb.lower()}?"
+        )
+        keyboard = InlineKeyboardMarkup([[
+            InlineKeyboardButton("✅ Ejecutar", callback_data=f"alert:confirm:{alert.id}"),
+            InlineKeyboardButton("❌ Rechazar", callback_data=f"alert:reject:{alert.id}"),
+        ]])
+
+        for _, user in members:
+            try:
+                await self.app.bot.send_message(
+                    chat_id=user.tg_id, text=text,
+                    parse_mode="Markdown", reply_markup=keyboard,
+                )
+            except Exception as e:
+                logger.error(f"Cannot notify tg_id={user.tg_id}: {e}")
