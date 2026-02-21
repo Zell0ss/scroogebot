@@ -27,7 +27,7 @@ async def handle_alert_callback(update: Update, context) -> None:
     action, alert_id = parts[1], int(parts[2])
 
     from src.db.base import async_session_factory
-    from src.db.models import Alert, Asset, Basket, Position, User
+    from src.db.models import Alert, Asset, Basket, BasketMember, Position, User
     from src.data.yahoo import YahooDataProvider
     from src.orders.paper import PaperTradingExecutor
     from sqlalchemy import select
@@ -45,7 +45,17 @@ async def handle_alert_callback(update: Update, context) -> None:
         )
         user = user_result.scalar_one_or_none()
         if not user:
-            await query.answer("Usa /start primero.", show_alert=True)
+            await query.edit_message_text("Usa /start primero.")
+            return
+
+        member_check = await session.execute(
+            select(BasketMember).where(
+                BasketMember.basket_id == basket.id,
+                BasketMember.user_id == user.id,
+            )
+        )
+        if not member_check.scalar_one_or_none():
+            await query.edit_message_text("No tienes acceso a esta cesta.")
             return
 
         if action == "reject":
@@ -73,7 +83,7 @@ async def handle_alert_callback(update: Update, context) -> None:
                     if qty > 0:
                         await executor.sell(
                             session, basket.id, asset.id, user.id,
-                            asset.ticker, qty, price,
+                            asset.ticker, qty, price, alert.strategy,
                         )
                     else:
                         await query.edit_message_text("Sin posición para vender.")
@@ -85,7 +95,7 @@ async def handle_alert_callback(update: Update, context) -> None:
                     if qty > 0:
                         await executor.buy(
                             session, basket.id, asset.id, user.id,
-                            asset.ticker, qty, price,
+                            asset.ticker, qty, price, alert.strategy,
                         )
                     else:
                         await query.edit_message_text("Cash insuficiente.")

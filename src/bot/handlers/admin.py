@@ -96,8 +96,17 @@ async def cmd_adduser(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
 async def cmd_watchlist(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     async with async_session_factory() as session:
+        user_result = await session.execute(
+            select(User).where(User.tg_id == update.effective_user.id)
+        )
+        user = user_result.scalar_one_or_none()
+        if not user:
+            await update.message.reply_text("Usa /start primero.")
+            return
         result = await session.execute(
-            select(Watchlist).order_by(Watchlist.created_at.desc())
+            select(Watchlist)
+            .where(Watchlist.added_by == user.id)
+            .order_by(Watchlist.created_at.desc())
         )
         items = result.scalars().all()
         if not items:
