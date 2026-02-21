@@ -12,6 +12,7 @@ from src.bot.handlers.orders import get_handlers as order_handlers
 from src.bot.handlers.baskets import get_handlers as basket_handlers
 from src.bot.handlers.analysis import get_handlers as analysis_handlers
 from src.bot.handlers.admin import get_handlers as admin_handlers
+from src.bot.handlers.backtest import get_handlers as backtest_handlers
 from src.alerts.engine import AlertEngine
 
 logger = logging.getLogger(__name__)
@@ -124,6 +125,8 @@ async def run() -> None:
     for handler in analysis_handlers():
         app.add_handler(handler)
     for handler in admin_handlers():
+        app.add_handler(handler)
+    for handler in backtest_handlers():
         app.add_handler(handler)
 
     app.add_handler(CallbackQueryHandler(handle_alert_callback, pattern="^alert:"))
