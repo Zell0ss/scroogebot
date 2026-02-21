@@ -55,7 +55,7 @@ async def cmd_analiza(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             else:
                 rsi_label = "neutral ⚪"
             lines.append(f"RSI (14): {rsi_val:.1f} — {rsi_label}")
-        lines.append(f"\n🔍 [Finviz](https://finviz.com/quote.ashx?t={ticker})")
+        lines.append(f"\n🔍 [Finviz](https://finviz.com/quote.ashx?t={ticker}) · [Yahoo](https://finance.yahoo.com/quote/{ticker})")
         await msg.edit_text("\n".join(lines), parse_mode="Markdown")
     except Exception as e:
         await msg.edit_text(f"❌ Error analizando {ticker}: {e}")
