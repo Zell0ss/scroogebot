@@ -1,5 +1,6 @@
 import logging
 
+import pandas as pd
 import ta.momentum
 from telegram import Update
 from telegram.ext import ContextTypes, CommandHandler
@@ -22,21 +23,30 @@ async def cmd_analiza(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         close = ohlcv.data["Close"]
 
         rsi_series = ta.momentum.RSIIndicator(close=close, window=14).rsi()
-        rsi_val = rsi_series.iloc[-1] if rsi_series is not None and not rsi_series.empty else None
+        last_rsi = rsi_series.iloc[-1] if (rsi_series is not None and not rsi_series.empty) else None
+        rsi_val = last_rsi if (last_rsi is not None and pd.notna(last_rsi)) else None
+
         sma20 = close.rolling(20).mean().iloc[-1]
         sma50 = close.rolling(50).mean().iloc[-1]
-        change_1d = (close.iloc[-1] - close.iloc[-2]) / close.iloc[-2] * 100
-        sign = "+" if change_1d >= 0 else ""
 
         lines = [
             f"📊 *Análisis: {ticker}*",
             f"💰 Precio: {price.price:.2f} {price.currency}",
-            f"📅 Cambio 1d: {sign}{change_1d:.2f}%",
-            "",
-            f"SMA 20: {sma20:.2f}",
-            f"SMA 50: {sma50:.2f}",
-            f"Tendencia: {'📈 Alcista' if sma20 > sma50 else '📉 Bajista'}",
         ]
+
+        if len(close) >= 2:
+            change_1d = (close.iloc[-1] - close.iloc[-2]) / close.iloc[-2] * 100
+            sign = "+" if change_1d >= 0 else ""
+            lines.append(f"📅 Cambio 1d: {sign}{change_1d:.2f}%")
+
+        lines.append("")
+        if pd.notna(sma20):
+            lines.append(f"SMA 20: {sma20:.2f}")
+        if pd.notna(sma50):
+            lines.append(f"SMA 50: {sma50:.2f}")
+        if pd.notna(sma20) and pd.notna(sma50):
+            lines.append(f"Tendencia: {'📈 Alcista' if sma20 > sma50 else '📉 Bajista'}")
+
         if rsi_val is not None:
             if rsi_val > 70:
                 rsi_label = "sobrecomprado 🔴"
