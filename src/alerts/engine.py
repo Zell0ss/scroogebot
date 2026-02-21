@@ -5,6 +5,7 @@ from sqlalchemy import select
 from src.db.base import async_session_factory
 from src.db.models import Alert, Basket, Asset, Position
 from src.data.yahoo import YahooDataProvider
+from src.scheduler.market_hours import any_market_open, is_market_open
 from src.strategies.base import Strategy
 from src.strategies.stop_loss import StopLossStrategy
 from src.strategies.ma_crossover import MACrossoverStrategy
@@ -30,6 +31,9 @@ class AlertEngine:
 
     async def scan_all_baskets(self) -> None:
         """Called by scheduler every N minutes."""
+        if not any_market_open():
+            logger.debug("All markets closed — skipping alert scan")
+            return
         logger.info("Alert scan started")
         async with async_session_factory() as session:
             result = await session.execute(select(Basket).where(Basket.active == True))
@@ -58,6 +62,9 @@ class AlertEngine:
             new_alerts: list[tuple[Alert, str]] = []
             for pos, asset in positions:
                 try:
+                    if asset.market and not is_market_open(asset.market):
+                        logger.debug(f"Skipping {asset.ticker} — {asset.market} closed")
+                        continue
                     price_obj = self.data.get_current_price(asset.ticker)
                     historical = self.data.get_historical(asset.ticker, period="3mo", interval="1d")
                     signal = strategy.evaluate(asset.ticker, historical.data, price_obj.price)

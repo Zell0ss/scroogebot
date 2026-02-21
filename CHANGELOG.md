@@ -6,10 +6,19 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ---
 
+## [0.3.0] — 2026-02-21
+
+### Added
+- `src/scheduler/market_hours.py` — `is_market_open(market)` / `any_market_open()`: UTC-based open/close guard reading `scheduler.market_hours` from `config.yaml`; weekends always closed; unknown markets pass through
+- `AlertEngine.scan_all_baskets` — skips entire scan when all markets are closed
+- `AlertEngine._scan_basket` — skips individual assets whose market is currently closed
+- `/logs [N]` — OWNER-only command listing the last *N* (default 20, max 50) command_logs entries with timestamp, user, command, and status
+- 13 new tests in `tests/test_market_hours.py` (30 total, all passing)
+
 ## [Unreleased]
 
 ### Planned
-- Market-hours-aware scheduler (skip scans outside NYSE/LSE/BME hours)
+- LSE market hours in config (currently only NYSE and IBEX configured)
 
 ---
 

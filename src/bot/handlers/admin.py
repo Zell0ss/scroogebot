@@ -4,7 +4,8 @@ from telegram.ext import ContextTypes, CommandHandler
 from sqlalchemy import select
 
 from src.db.base import async_session_factory
-from src.db.models import User, Basket, BasketMember, Watchlist
+from sqlalchemy import desc
+from src.db.models import User, Basket, BasketMember, CommandLog, Watchlist
 from src.bot.audit import log_command
 
 logger = logging.getLogger(__name__)
@@ -159,10 +160,57 @@ async def cmd_addwatch(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await log_command(update, "/addwatch", True, ok_msg, raw_args)
 
 
+async def cmd_logs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Usage: /logs [N] — last N command_logs entries (OWNER of any basket only)."""
+    n = 20
+    if context.args and context.args[0].isdigit():
+        n = min(int(context.args[0]), 50)
+
+    async with async_session_factory() as session:
+        caller_result = await session.execute(
+            select(User).where(User.tg_id == update.effective_user.id)
+        )
+        caller = caller_result.scalar_one_or_none()
+        if not caller:
+            await update.message.reply_text("Usa /start primero.")
+            return
+
+        owner_check = await session.execute(
+            select(BasketMember).where(
+                BasketMember.user_id == caller.id,
+                BasketMember.role == "OWNER",
+            )
+        )
+        if not owner_check.scalar_one_or_none():
+            await update.message.reply_text("Solo los OWNER pueden ver los logs.")
+            return
+
+        result = await session.execute(
+            select(CommandLog)
+            .order_by(desc(CommandLog.created_at))
+            .limit(n)
+        )
+        logs = result.scalars().all()
+
+    if not logs:
+        await update.message.reply_text("No hay registros aún.")
+        return
+
+    lines = [f"📋 *Últimos {len(logs)} comandos*\n"]
+    for entry in logs:
+        status = "✅" if entry.success else "❌"
+        user = f"@{entry.username}" if entry.username else f"id:{entry.tg_id}"
+        ts = entry.created_at.strftime("%d/%m %H:%M") if entry.created_at else "—"
+        lines.append(f"{status} `{ts}` {user} — `{entry.command}`")
+
+    await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+
+
 def get_handlers():
     return [
         CommandHandler("start", cmd_start),
         CommandHandler("adduser", cmd_adduser),
         CommandHandler("watchlist", cmd_watchlist),
         CommandHandler("addwatch", cmd_addwatch),
+        CommandHandler("logs", cmd_logs),
     ]

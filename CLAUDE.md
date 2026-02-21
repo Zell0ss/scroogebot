@@ -19,6 +19,8 @@ ScroogeBot ("TioGilito") is a Telegram investment bot for shared paper-trading b
 
 ## Critical Notes
 
+Project has a .venv: remember to activate it for any python, pip, etc.
+
 ### ta library API (NOT pandas-ta)
 ```python
 # RSI
