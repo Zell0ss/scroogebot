@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from telegram import Update
 from telegram.ext import ContextTypes, CommandHandler
@@ -10,6 +11,8 @@ from src.strategies.stop_loss import StopLossStrategy
 from src.strategies.ma_crossover import MACrossoverStrategy
 
 logger = logging.getLogger(__name__)
+
+sign = lambda v: "+" if v >= 0 else ""
 
 VALID_PERIODS = {"1mo", "3mo", "6mo", "1y", "2y"}
 
@@ -49,12 +52,20 @@ async def cmd_backtest(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             )
             assets = assets_result.scalars().all()
 
+            if not assets:
+                await update.message.reply_text(
+                    f"*{basket.name}*: sin activos activos.", parse_mode="Markdown"
+                )
+                continue
+
             lines = [f"📊 *Backtest: {basket.name}* ({period})\n"]
             for asset in assets:
                 try:
-                    r = engine.run(asset.ticker, strategy, basket.strategy, period)
+                    loop = asyncio.get_event_loop()
+                    r = await loop.run_in_executor(
+                        None, engine.run, asset.ticker, strategy, basket.strategy, period
+                    )
                     alpha = r.total_return_pct - r.benchmark_return_pct
-                    sign = lambda v: "+" if v >= 0 else ""
                     lines += [
                         f"*{asset.ticker}*",
                         f"  Rentabilidad: {sign(r.total_return_pct)}{r.total_return_pct:.1f}%  (B&H: {sign(r.benchmark_return_pct)}{r.benchmark_return_pct:.1f}%,  α: {sign(alpha)}{alpha:.1f}%)",

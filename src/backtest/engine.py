@@ -50,7 +50,9 @@ class BacktestEngine:
             current_price = Decimal(str(close.iloc[i]))
             try:
                 signal = strategy.evaluate(ticker, window_data, current_price)
-            except Exception:
+            except Exception as e:
+                logger.warning("Strategy %s raised on bar %d for %s: %s",
+                               strategy.__class__.__name__, i, ticker, e)
                 continue
             if signal:
                 if signal.action == "BUY":
@@ -63,12 +65,16 @@ class BacktestEngine:
 
         bh_return = float((close.iloc[-1] - close.iloc[0]) / close.iloc[0] * 100)
 
+        total_return = float(stats.get("Total Return [%]", 0))
+        n_days = max(len(close), 1)
+        annualized = ((1 + total_return / 100) ** (252 / n_days) - 1) * 100 if total_return > -100 else -100.0
+
         return BacktestResult(
             ticker=ticker,
             period=period,
             strategy_name=strategy_name,
-            total_return_pct=float(stats.get("Total Return [%]", 0)),
-            annualized_return_pct=float(stats.get("Annualized Return [%]", 0)),
+            total_return_pct=total_return,
+            annualized_return_pct=annualized,
             sharpe_ratio=float(stats.get("Sharpe Ratio", 0) or 0),
             max_drawdown_pct=float(stats.get("Max Drawdown [%]", 0)),
             n_trades=int(stats.get("Total Trades", 0)),
