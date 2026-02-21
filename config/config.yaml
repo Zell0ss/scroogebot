@@ -1,0 +1,61 @@
+scheduler:
+  interval_minutes: 5
+  market_hours:
+    NYSE:
+      open: "14:30"   # UTC
+      close: "21:00"
+    IBEX:
+      open: "08:00"
+      close: "16:30"
+
+strategies:
+  stop_loss:
+    stop_loss_pct: 8.0
+    take_profit_pct: 15.0
+  ma_crossover:
+    fast_period: 20
+    slow_period: 50
+  rsi:
+    period: 14
+    oversold: 30
+    overbought: 70
+  bollinger:
+    period: 20
+    std_dev: 2.0
+
+baskets:
+  - name: "Cesta Agresiva"
+    strategy: ma_crossover
+    risk_profile: aggressive
+    cash: 10000.0
+    assets:
+      - ticker: AAPL
+        name: "Apple Inc"
+        market: NYSE
+        currency: USD
+      - ticker: MSFT
+        name: "Microsoft Corp"
+        market: NYSE
+        currency: USD
+      - ticker: NVDA
+        name: "NVIDIA Corp"
+        market: NYSE
+        currency: USD
+
+  - name: "Cesta Conservadora"
+    strategy: safe_haven
+    risk_profile: conservative
+    cash: 10000.0
+    assets:
+      - ticker: "SAN.MC"
+        name: "Banco Santander"
+        market: IBEX
+        currency: EUR
+      - ticker: "IBE.MC"
+        name: "Iberdrola"
+        market: IBEX
+        currency: EUR
+      - ticker: GLD
+        name: "SPDR Gold Shares"
+        market: NYSE
+        currency: USD
