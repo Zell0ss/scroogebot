@@ -177,6 +177,26 @@ Vende acciones de un activo en cartera.
 
 ## Análisis técnico
 
+### `/buscar <texto>`
+
+Busca tickers por nombre de empresa o símbolo. Primero busca entre los activos
+de tus cestas (resultados marcados con 📌), y si hay pocos resultados consulta
+también Yahoo Finance.
+
+```
+/buscar santander
+/buscar banco santander
+/buscar NVDA
+```
+
+**Muestra:**
+- Activos en tus cestas que coincidan (con la cesta a la que pertenecen)
+- Resultados adicionales de Yahoo Finance si hay menos de 3 locales
+- Ticker, nombre, exchange y tipo (Equity, ETF, etc.)
+- Sugerencia de comandos para el primer resultado
+
+---
+
 ### `/analiza <TICKER>`
 
 Obtiene el análisis técnico de cualquier ticker (no tiene que estar en una cesta). Usa datos de los últimos 3 meses.
@@ -388,6 +408,7 @@ Las alertas no se repiten hasta que cambie el estado del activo.
 | `/compra <TICKER> <qty>` | Comprar acciones | Registrado |
 | `/vende <TICKER> <qty>` | Vender acciones | Registrado |
 | `/analiza <TICKER>` | Análisis técnico (RSI, SMA) | Registrado |
+| `/buscar <texto>` | Buscar tickers por nombre | Registrado |
 | `/sizing <TICKER> [STOP_LOSS]` | Position sizing con comisiones | Registrado |
 | `/backtest [período]` | Backtest de estrategias | Registrado |
 | `/register <id> <user>` | Pre-registrar usuario | OWNER |
