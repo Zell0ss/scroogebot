@@ -35,3 +35,27 @@ class YahooDataProvider(DataProvider):
         ).average_true_range()
         last = atr_series.dropna().iloc[-1]
         return Decimal(str(round(float(last), 4)))
+
+    def search_yahoo(self, query: str, max_results: int = 8) -> list:
+        """Search Yahoo Finance by name or ticker. Returns list[SearchResult]."""
+        from src.data.models import SearchResult
+        try:
+            quotes = yf.Search(query, max_results=max_results).quotes
+        except Exception as e:
+            logger.warning("yf.Search failed for %r: %s", query, e)
+            return []
+        results = []
+        for q in quotes:
+            ticker = q.get("symbol", "")
+            if not ticker:
+                continue
+            name = q.get("shortname") or q.get("longname") or ticker
+            results.append(SearchResult(
+                ticker=ticker,
+                name=name,
+                exchange=q.get("exchange", ""),
+                type=q.get("typeDisp", "Equity"),
+                in_basket=False,
+                basket_name=None,
+            ))
+        return results
