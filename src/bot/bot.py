@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import datetime
 from decimal import Decimal
@@ -13,6 +14,7 @@ from src.bot.handlers.baskets import get_handlers as basket_handlers
 from src.bot.handlers.analysis import get_handlers as analysis_handlers
 from src.bot.handlers.admin import get_handlers as admin_handlers
 from src.bot.handlers.backtest import get_handlers as backtest_handlers
+from src.bot.handlers.sizing import get_handlers as sizing_handlers
 from src.alerts.engine import AlertEngine
 from src.bot.audit import log_command
 from src.metrics import start_metrics_server
@@ -136,6 +138,8 @@ async def run() -> None:
         app.add_handler(handler)
     for handler in backtest_handlers():
         app.add_handler(handler)
+    for handler in sizing_handlers():
+        app.add_handler(handler)
 
     app.add_handler(CallbackQueryHandler(handle_alert_callback, pattern="^alert:"))
 
@@ -143,7 +147,17 @@ async def run() -> None:
     scheduler = AsyncIOScheduler()
     interval = app_config["scheduler"]["interval_minutes"]
     scheduler.add_job(alert_engine.scan_all_baskets, "interval", minutes=interval)
-    scheduler.start()
 
-    logger.info(f"ScroogeBot starting — scanning every {interval}min")
-    await app.run_polling(drop_pending_updates=True)
+    async with app:
+        await app.start()
+        scheduler.start()
+        logger.info(f"ScroogeBot starting — scanning every {interval}min")
+        await app.updater.start_polling(drop_pending_updates=True)
+        try:
+            await asyncio.sleep(float("inf"))
+        except (KeyboardInterrupt, asyncio.CancelledError):
+            pass
+        finally:
+            scheduler.shutdown(wait=False)
+            await app.updater.stop()
+            await app.stop()
