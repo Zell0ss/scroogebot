@@ -1,0 +1,170 @@
+# FUTURE — ScroogeBot observability roadmap
+
+Ideas and improvement notes for the Prometheus metrics layer and beyond.
+
+---
+
+## What is implemented today
+
+`src/metrics.py` starts a Prometheus-compatible HTTP server (port 9090 by default)
+when the bot launches. Five metrics are exposed:
+
+| Metric | Type | Labels | What it measures |
+|---|---|---|---|
+| `scroogebot_alert_scans_total` | Counter | `result` | Scan runs: `completed` vs `skipped_closed` |
+| `scroogebot_alerts_generated_total` | Counter | `strategy`, `signal` | Alerts fired per strategy (BUY/SELL) |
+| `scroogebot_scan_duration_seconds` | Histogram | — | Wall-clock time for a full scan run |
+| `scroogebot_market_open` | Gauge | `market` | 1 = open, 0 = closed (updated every tick) |
+| `scroogebot_commands_total` | Counter | `command`, `success` | Write-commands executed via Telegram |
+
+**Verify it works** (while the bot is running):
+
+```bash
+curl http://localhost:9090/metrics | grep scroogebot
+```
+
+Example output:
+
+```
+scroogebot_alert_scans_total{result="completed"} 12.0
+scroogebot_alert_scans_total{result="skipped_closed"} 48.0
+scroogebot_alerts_generated_total{signal="BUY",strategy="rsi"} 2.0
+scroogebot_scan_duration_seconds_sum 4.37
+scroogebot_market_open{market="NYSE"} 1.0
+scroogebot_market_open{market="IBEX"} 0.0
+scroogebot_market_open{market="LSE"} 1.0
+scroogebot_commands_total{command="/compra",success="true"} 3.0
+```
+
+---
+
+## Near-term: quick wins
+
+### 1. `/estado` Telegram command
+
+A read-only command that pulls the current metric values directly from the
+running counters — no Prometheus server needed:
+
+```
+/estado
+
+📊 ScroogeBot — estado actual
+
+🔄 Escaneos: 60 completados · 240 omitidos (mercados cerrados)
+⚠️  Alertas generadas hoy: 4 (rsi·BUY x2, safe_haven·SELL x2)
+⏱️  Último escaneo: 0.34 s
+🟢 NYSE: abierto · 🔴 IBEX: cerrado · 🟢 LSE: abierto
+📋 Comandos hoy: /compra x3 · /vende x1 · /backtest x2
+```
+
+Implementation: read from prometheus_client's internal registry via
+`REGISTRY.get_sample_value()` — no HTTP round-trip needed.
+
+---
+
+### 2. Additional metrics worth adding
+
+| Metric | Type | Rationale |
+|---|---|---|
+| `scroogebot_positions_total` | Gauge | Active positions per basket (snapshot on each scan) |
+| `scroogebot_portfolio_value_eur` | Gauge | Total portfolio in EUR per basket |
+| `scroogebot_yfinance_errors_total` | Counter | Track data-provider failures |
+| `scroogebot_scan_assets_evaluated` | Counter | Assets checked per scan run |
+
+---
+
+## Medium-term: Prometheus + Grafana stack
+
+To get time-series charts, set up a local scrape stack with Docker Compose.
+
+### `docker-compose.monitoring.yml`
+
+```yaml
+version: "3.8"
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    ports: ["9091:9090"]
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    ports: ["3000:3000"]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+
+volumes:
+  grafana_data:
+```
+
+### `config/prometheus.yml`
+
+```yaml
+global:
+  scrape_interval: 60s
+
+scrape_configs:
+  - job_name: scroogebot
+    static_configs:
+      - targets: ["host.docker.internal:9090"]  # or your server IP
+```
+
+Start: `docker compose -f docker-compose.monitoring.yml up -d`
+Grafana: `http://localhost:3000` (admin / admin)
+
+### Useful Grafana panels
+
+- **Scan throughput**: `rate(scroogebot_alert_scans_total[1h])`
+- **Market uptime ratio**: `scroogebot_market_open{market="NYSE"}`
+- **Alerts per strategy**: `increase(scroogebot_alerts_generated_total[24h])`
+- **Average scan duration**: `scroogebot_scan_duration_seconds_sum / scroogebot_scan_duration_seconds_count`
+- **Command usage**: `increase(scroogebot_commands_total[24h])`
+
+---
+
+## Medium-term: Alertmanager rules
+
+If the bot goes silent, Alertmanager can page you. Example rule:
+
+```yaml
+# config/alert_rules.yml
+groups:
+  - name: scroogebot
+    rules:
+      - alert: BotNotScanning
+        expr: increase(scroogebot_alert_scans_total[15m]) == 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "ScroogeBot has not run a scan in 15 minutes"
+
+      - alert: HighYfinanceErrors
+        expr: increase(scroogebot_yfinance_errors_total[1h]) > 10
+        labels:
+          severity: warning
+        annotations:
+          summary: "More than 10 yfinance errors in the last hour"
+```
+
+---
+
+## Long-term ideas
+
+- **Portfolio value chart**: log `scroogebot_portfolio_value_eur` every scan;
+  plot it in Grafana as an equity curve over weeks/months.
+- **Strategy performance**: cross-reference `alerts_generated_total` with
+  DB order outcomes → signal quality over time.
+- **Backtest metrics**: expose backtest Sharpe / max-drawdown as gauges when
+  `/backtest` is called, so they appear in Grafana.
+- **Structured logging to Loki**: replace rotating file `scroogebot.log` with
+  Grafana Loki for log aggregation alongside metrics in the same dashboard.
+
+---
+
+*Last updated: 2026-02-21*
