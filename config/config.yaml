@@ -31,6 +31,7 @@ strategies:
 
 baskets:
   - name: "Cesta Agresiva"
+    broker: paper
     strategy: ma_crossover
     risk_profile: aggressive
     cash: 10000.0
@@ -49,6 +50,7 @@ baskets:
         currency: USD
 
   - name: "Cesta Conservadora"
+    broker: paper
     strategy: safe_haven
     risk_profile: conservative
     cash: 10000.0

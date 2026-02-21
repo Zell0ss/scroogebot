@@ -1,7 +1,7 @@
 """Seed baskets and assets from config/config.yaml. Idempotent."""
 import asyncio
 from src.config import app_config
-from src.db.base import async_session_factory
+from src.db.base import async_session_factory, engine
 from src.db.models import Asset, Basket, BasketAsset
 from sqlalchemy import select
 
@@ -19,6 +19,7 @@ async def seed() -> None:
                     strategy=basket_cfg["strategy"],
                     risk_profile=basket_cfg.get("risk_profile", "moderate"),
                     cash=basket_cfg.get("cash", 0),
+                    broker=basket_cfg.get("broker", "paper"),
                 )
                 session.add(basket)
                 await session.flush()
@@ -50,6 +51,7 @@ async def seed() -> None:
 
         await session.commit()
         print("Seed complete.")
+    await engine.dispose()
 
 
 if __name__ == "__main__":

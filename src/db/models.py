@@ -33,6 +33,7 @@ class Basket(Base):
     cash: Mapped[Decimal] = mapped_column(Numeric(15, 4), default=Decimal("0"))
     currency: Mapped[str] = mapped_column(String(10), default="EUR")
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    broker: Mapped[str] = mapped_column(String(50), nullable=False, default="paper")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
     members: Mapped[list[BasketMember]] = relationship(back_populates="basket")
