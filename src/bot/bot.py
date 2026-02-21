@@ -3,6 +3,8 @@ from telegram.ext import Application
 from src.config import settings
 from src.bot.handlers.portfolio import get_handlers as portfolio_handlers
 from src.bot.handlers.orders import get_handlers as order_handlers
+from src.bot.handlers.baskets import get_handlers as basket_handlers
+from src.bot.handlers.analysis import get_handlers as analysis_handlers
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +14,10 @@ async def run() -> None:
     for handler in portfolio_handlers():
         app.add_handler(handler)
     for handler in order_handlers():
+        app.add_handler(handler)
+    for handler in basket_handlers():
+        app.add_handler(handler)
+    for handler in analysis_handlers():
         app.add_handler(handler)
     logger.info("ScroogeBot starting...")
     await app.run_polling(drop_pending_updates=True)
