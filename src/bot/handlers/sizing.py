@@ -6,7 +6,7 @@ from sqlalchemy import select
 from src.db.base import async_session_factory
 from src.db.models import Basket, BasketAsset, Asset
 from src.sizing.broker import BROKER_REGISTRY, Broker
-from src.sizing.engine import calculate_sizing
+from src.sizing.engine import calculate_sizing, CAPITAL_TOTAL
 from src.sizing.models import SizingResult
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ def _format_result(r: SizingResult) -> str:
         "",
         f"Acciones:           {r.acciones}  (limitado por {r.factor_limite})",
         f"Posición nominal:   €{_fmt(r.nominal)} ({_fmt(r.pct_cartera)}% de cartera)",
-        f"Riesgo máximo:      €{_fmt(r.riesgo_maximo)} ({_fmt(r.riesgo_maximo / 20000 * 100)}%)",
+        f"Riesgo máximo:      €{_fmt(r.riesgo_maximo)} ({_fmt(r.riesgo_maximo / CAPITAL_TOTAL * 100)}%)",
         "",
         f"Comisiones ({r.broker_nombre}): €{_fmt(r.com_compra)} compra + €{_fmt(r.com_venta)} venta",
         f"Riesgo real:        €{_fmt(r.riesgo_real)}",

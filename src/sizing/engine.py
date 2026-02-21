@@ -39,6 +39,29 @@ def calculate_sizing(
     distancia = precio - stop_loss
     distancia_pct = (distancia / precio * 100) if precio > 0 else 0.0
 
+    if distancia <= 0:
+        return SizingResult(
+            ticker=ticker,
+            company_name=ticker,
+            precio=precio,
+            currency=currency,
+            stop_loss=stop_loss,
+            stop_tipo=stop_tipo,
+            atr=atr_val,
+            distancia=distancia,
+            distancia_pct=distancia_pct,
+            acciones=0,
+            factor_limite="riesgo",
+            nominal=0.0,
+            pct_cartera=0.0,
+            riesgo_maximo=CAPITAL_TOTAL * RIESGO_MAX_PCT,
+            riesgo_real=0.0,
+            com_compra=0.0,
+            com_venta=0.0,
+            broker_nombre=broker.name,
+            aviso="❌ Stop loss debe ser inferior al precio actual",
+        )
+
     # 3. Sizing
     riesgo_max = CAPITAL_TOTAL * RIESGO_MAX_PCT
     posicion_max = CAPITAL_TOTAL * POSICION_MAX_PCT

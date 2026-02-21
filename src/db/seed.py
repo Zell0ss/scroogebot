@@ -24,6 +24,9 @@ async def seed() -> None:
                 session.add(basket)
                 await session.flush()
                 print(f"Created basket: {basket.name}")
+            else:
+                basket.strategy = basket_cfg["strategy"]
+                basket.broker = basket_cfg.get("broker", "paper")
 
             for asset_cfg in basket_cfg.get("assets", []):
                 result = await session.execute(

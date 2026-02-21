@@ -183,6 +183,14 @@ def test_sizing_riesgo_real_no_excede_maximo():
     assert result.riesgo_real <= result.riesgo_maximo + 0.01
 
 
+def test_sizing_stop_above_price_returns_zero_shares():
+    broker = _mock_broker_engine(precio=10.0, atr=0.5)
+    result = calculate_sizing("SAN.MC", stop_loss_manual=11.0, broker=broker)
+    assert result.acciones == 0
+    assert result.aviso is not None
+    assert "stop loss" in result.aviso.lower() or "inferior" in result.aviso.lower()
+
+
 def test_sizing_pct_commission_iterative_convergence():
     """MyInvestor 0.12%, min 3, max 25: riesgo_real must not exceed riesgo_max."""
     from unittest.mock import MagicMock
