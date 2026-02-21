@@ -8,11 +8,30 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
-### Planned (Part 3)
-- `/backtest <TICKER> <strategy>` — vectorbt-powered backtesting
-- RSIStrategy, BollingerBandsStrategy, SafeHavenStrategy
+### Planned
 - Market-hours-aware scheduler (skip scans outside NYSE/LSE/BME hours)
-- systemd service file
+
+---
+
+## [0.2.0] — 2026-02-21
+
+### Added (Part 3 — Backtesting, Advanced Strategies, Observability)
+- `/backtest [period]` — vectorbt-powered backtesting for all active basket assets; returns total return, Sharpe, max drawdown, win rate, α vs buy-and-hold
+- `BacktestEngine` — rolling 60-bar signal generation with `asyncio.run_in_executor` (non-blocking)
+- `RSIStrategy` — crossover-based BUY/SELL on RSI exiting oversold/overbought zones
+- `BollingerStrategy` — BUY at/below lower band, SELL at/above upper band
+- `SafeHavenStrategy` — SELL risky assets on drawdown ≥ threshold from peak; skips GLD/BND/TLT/SHY/VGSH
+- All 3 new strategies registered in `AlertEngine.STRATEGY_MAP` and `/backtest` handler
+- `scroogebot.service` — systemd unit file for production deployment
+- **loguru** logging: colorised stdout + rotating `scroogebot.log` (10 MB / 30 days); stdlib `logging` intercepted via `InterceptHandler`
+- `command_logs` table + Alembic migration — persists every write-command with user, timestamp, args, success flag, and outcome message
+- `src/bot/audit.py` — `log_command()` async helper (never raises; audit failures logged only)
+- Write commands audited: `/compra`, `/vende`, `/adduser`, `/addwatch`, `/start`, alert confirm/reject callbacks
+
+### Fixed
+- `"Annualized Return [%]"` key missing in vectorbt 0.28.4 stats — now computed manually: `((1+R)^(252/n) - 1) × 100`
+- `BacktestEngine.run()` blocking asyncio event loop — wrapped in `run_in_executor`
+- `sign` lambda re-defined inside loop — moved to module level
 
 ---
 

@@ -1,49 +1,43 @@
-# TOMORROW — Next Session
+# TOMORROW — ScroogeBot next session context
 
-## Status: Part 2 Complete ✅, Part 3 Ready to Start
+## Status: Parts 1, 2 and 3 COMPLETE ✅
 
-## What Was Done (Parts 1 & 2)
+All features implemented, tested (17/17 pass), committed and pushed to
+https://github.com/Zell0ss/scroogebot
 
-### Part 1 — Core infrastructure
-- Config module (pydantic-settings + YAML)
-- SQLAlchemy async models (9 tables) + Alembic migration
-- DB seeder from config.yaml (2 baskets, 6 assets)
-- YahooDataProvider (abstract DataProvider)
-- PortfolioEngine with EUR FX conversion
-- PaperTradingExecutor (buy/sell with cash tracking)
-- Bot commands: /valoracion, /cartera, /historial, /compra, /vende
+---
 
-### Part 2 — Strategies, alerts, roles
-- Bot commands: /cestas, /cesta, /analiza (RSI+SMA)
-- Strategy framework: StopLossStrategy + MACrossoverStrategy (ta lib API)
-- AlertEngine with APScheduler (5min scan, per-basket session isolation, notify-before-commit)
-- Bot commands: /start, /adduser (OWNER role), /watchlist, /addwatch
-- Alert inline keyboard (✅ Ejecutar / ❌ Rechazar) with PaperTradingExecutor callback
+## What was done today (2026-02-21)
 
-## Next Task: Part 3
+### Part 3 complete:
+- BacktestEngine + /backtest command (vectorbt, run_in_executor)
+- RSIStrategy, BollingerStrategy, SafeHavenStrategy
+- systemd scroogebot.service
+- loguru app logging (replaces logging.yaml; stdlib intercepted)
+- command_logs table + Alembic migration b1c2d3e4f567
+- src/bot/audit.py with log_command() helper
+- Audit on: /compra, /vende, /adduser, /addwatch, /start, alert confirm/reject
 
-**Plan file:** `docs/plans/2026-02-21-part3-backtest-advanced.md`
+---
 
-Part 3 tasks:
-1. **Backtest engine** — `src/backtest/engine.py` using vectorbt
-2. **RSI + Bollinger Bands strategies** — `src/strategies/rsi.py`, `src/strategies/bollinger.py`
-3. **SafeHaven strategy** — rotate to GLD/TLT on VIX spike
-4. **/backtest command** — `src/bot/handlers/backtest.py`
-5. **Market-hours scheduler** — skip scans outside NYSE/LSE/BME hours
-6. **systemd service** — `scroogebot.service` for production deployment
+## Git log (recent)
+- 242cbe3 feat: loguru app logging + command_logs DB audit table
+- 95497ed feat: RSI, Bollinger, SafeHaven strategies
+- 4be4efe fix: annualized return, run_in_executor, quality fixes
+- e049ea4 feat: systemd service file
+- c487662 feat: /backtest command
+- ccc9e60 feat: BacktestEngine
 
-Install vectorbt first: `pip install ".[backtest]"` (already in pyproject.toml)
+---
 
-## Important Notes for Next Session
+## Deploy steps (when going to production)
+1. `alembic upgrade head`  — runs migration b1c2d3e4f567 (command_logs table)
+2. `sudo cp scroogebot.service /etc/systemd/system/`
+3. `sudo systemctl daemon-reload && sudo systemctl enable --now scroogebot`
 
-- `ta` library (NOT pandas-ta): `ta.momentum.RSIIndicator(close=series, window=14).rsi()`
-- `ta.volatility.BollingerBands(close=series, window=20, window_dev=2).bollinger_hband()` etc.
-- Python 3.11 AsyncMock: use `MagicMock()` for `execute_result`, not `AsyncMock()`
-- All tests: `.venv/bin/pytest tests/ -v` (13 passing)
-- DB: MariaDB on seb01, user `sebastian_user`
+---
 
-## Open Issues / Known Limitations
-
-- StopLossStrategy uses `data["Close"].iloc[0]` (3-month window open) as reference price, NOT `Position.avg_price`. Fine for demo, should be revisited if real money ever involved.
-- No market-hours guard on scheduler yet (added in Part 3 Task 5)
-- No tests for AlertEngine, handlers (plan only requires manual test for those)
+## Possible next improvements
+- Market-hours guard in AlertEngine (skip scans outside NYSE/LSE open hours)
+- `/logs` command — query command_logs for the last N entries (admin only)
+- Prometheus metrics endpoint
