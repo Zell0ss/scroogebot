@@ -10,6 +10,7 @@ from telegram import Update
 
 from src.db.base import async_session_factory
 from src.db.models import CommandLog
+from src.metrics import commands_total
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,7 @@ async def log_command(
         message: Human-readable outcome (confirmation text or error).
         args:    Raw argument string, e.g. "AAPL 3".
     """
+    commands_total.labels(command=command, success=str(success).lower()).inc()
     tg_user = update.effective_user
     try:
         async with async_session_factory() as session:

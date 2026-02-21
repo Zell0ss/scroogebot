@@ -5,6 +5,7 @@ from sqlalchemy import select
 from src.db.base import async_session_factory
 from src.db.models import Alert, Basket, Asset, Position
 from src.data.yahoo import YahooDataProvider
+from src.metrics import alert_scans_total, alerts_generated_total, market_open, scan_duration_seconds
 from src.scheduler.market_hours import any_market_open, is_market_open
 from src.strategies.base import Strategy
 from src.strategies.stop_loss import StopLossStrategy
@@ -31,19 +32,29 @@ class AlertEngine:
 
     async def scan_all_baskets(self) -> None:
         """Called by scheduler every N minutes."""
+        # Update market-open gauges so Prometheus always reflects current state
+        from src.config import app_config
+        for mkt in app_config.get("scheduler", {}).get("market_hours", {}):
+            market_open.labels(market=mkt).set(1 if is_market_open(mkt) else 0)
+
         if not any_market_open():
             logger.debug("All markets closed — skipping alert scan")
+            alert_scans_total.labels(result="skipped_closed").inc()
             return
-        logger.info("Alert scan started")
-        async with async_session_factory() as session:
-            result = await session.execute(select(Basket).where(Basket.active == True))
-            baskets = result.scalars().all()
 
-        for basket in baskets:
-            try:
-                await self._scan_basket(basket)
-            except Exception as e:
-                logger.error(f"Error scanning basket '{basket.name}': {e}")
+        logger.info("Alert scan started")
+        with scan_duration_seconds.time():
+            async with async_session_factory() as session:
+                result = await session.execute(select(Basket).where(Basket.active == True))
+                baskets = result.scalars().all()
+
+            for basket in baskets:
+                try:
+                    await self._scan_basket(basket)
+                except Exception as e:
+                    logger.error(f"Error scanning basket '{basket.name}': {e}")
+
+        alert_scans_total.labels(result="completed").inc()
 
     async def _scan_basket(self, basket: Basket) -> None:
         strategy_cls = STRATEGY_MAP.get(basket.strategy)
@@ -91,6 +102,9 @@ class AlertEngine:
                     )
                     session.add(alert)
                     new_alerts.append((alert, asset.ticker))
+                    alerts_generated_total.labels(
+                        strategy=basket.strategy, signal=signal.action
+                    ).inc()
 
                 except Exception as e:
                     logger.error(f"Alert scan error {asset.ticker}: {e}")

@@ -7,6 +7,12 @@ scheduler:
     IBEX:
       open: "08:00"
       close: "16:30"
+    LSE:
+      open: "08:00"   # UTC (London, winter = UTC+0)
+      close: "16:30"
+
+metrics:
+  port: 9090
 
 strategies:
   stop_loss:

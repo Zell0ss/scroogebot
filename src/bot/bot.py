@@ -15,6 +15,7 @@ from src.bot.handlers.admin import get_handlers as admin_handlers
 from src.bot.handlers.backtest import get_handlers as backtest_handlers
 from src.alerts.engine import AlertEngine
 from src.bot.audit import log_command
+from src.metrics import start_metrics_server
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +119,9 @@ async def handle_alert_callback(update: Update, context) -> None:
 
 
 async def run() -> None:
+    metrics_port = app_config.get("metrics", {}).get("port", 9090)
+    start_metrics_server(metrics_port)
+
     app = Application.builder().token(settings.telegram_apikey).build()
 
     for handler in portfolio_handlers():

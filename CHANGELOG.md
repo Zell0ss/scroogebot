@@ -15,10 +15,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - `/logs [N]` — OWNER-only command listing the last *N* (default 20, max 50) command_logs entries with timestamp, user, command, and status
 - 13 new tests in `tests/test_market_hours.py` (30 total, all passing)
 
-## [Unreleased]
+## [0.4.0] — 2026-02-21
 
-### Planned
-- LSE market hours in config (currently only NYSE and IBEX configured)
+### Added
+- `LSE` market hours in `config.yaml` (08:00–16:30 UTC)
+- `metrics` section in `config.yaml` (`port: 9090`)
+- `src/metrics.py` — Prometheus metrics module (singletons, `start_metrics_server(port)`)
+  - `scroogebot_alert_scans_total` counter — labels: `result` (completed/skipped_closed)
+  - `scroogebot_alerts_generated_total` counter — labels: `strategy`, `signal`
+  - `scroogebot_scan_duration_seconds` histogram — wall-clock duration of scan runs
+  - `scroogebot_market_open` gauge — 0/1 per configured market, updated each scan tick
+  - `scroogebot_commands_total` counter — labels: `command`, `success` (true/false)
+- `AlertEngine` instruments scan count, duration, per-strategy alert count, and market-open gauge
+- `audit.log_command()` increments `scroogebot_commands_total` before writing to DB
+- `bot.py run()` starts Prometheus metrics HTTP server on configured port at startup
+- `prometheus-client>=0.19` added to `pyproject.toml` dependencies
+
+## [Unreleased]
 
 ---
 
