@@ -1,0 +1,19 @@
+[Unit]
+Description=ScroogeBot — Investment Telegram Bot
+After=network.target mariadb.service
+Wants=mariadb.service
+
+[Service]
+Type=simple
+ExecStart=/data/scroogebot/.venv/bin/python /data/scroogebot/scroogebot.py
+User=ubuntu
+WorkingDirectory=/data/scroogebot
+Restart=always
+RestartSec=10
+EnvironmentFile=/data/scroogebot/.env
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scroogebot
+
+[Install]
+WantedBy=multi-user.target
