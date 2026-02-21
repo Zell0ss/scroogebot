@@ -27,3 +27,43 @@ def test_pct_commission_with_maximum():
 def test_zero_commission():
     c = CommissionStructure()
     assert c.calcular(10_000.0) == 0.0
+
+
+from unittest.mock import MagicMock, patch
+import pandas as pd
+from decimal import Decimal
+from src.data.yahoo import YahooDataProvider
+
+
+def _make_ohlcv(n=30):
+    """Synthetic OHLCV: flat price, H-L spread of 4."""
+    idx = pd.date_range("2024-01-01", periods=n, freq="D")
+    return pd.DataFrame({
+        "Open":   [100.0] * n,
+        "High":   [102.0] * n,
+        "Low":    [98.0]  * n,
+        "Close":  [100.0] * n,
+        "Volume": [1000]  * n,
+    }, index=idx)
+
+
+def test_get_atr_returns_decimal():
+    provider = YahooDataProvider()
+    with patch.object(provider, "get_historical") as mock_hist:
+        mock_ohlcv = MagicMock()
+        mock_ohlcv.data = _make_ohlcv(30)
+        mock_hist.return_value = mock_ohlcv
+        atr = provider.get_atr("AAPL")
+    assert isinstance(atr, Decimal)
+    assert atr > 0
+
+
+def test_get_atr_flat_prices_gives_small_value():
+    """Flat OHLCV (H-L always 4): ATR should be around 4."""
+    provider = YahooDataProvider()
+    with patch.object(provider, "get_historical") as mock_hist:
+        mock_ohlcv = MagicMock()
+        mock_ohlcv.data = _make_ohlcv(30)
+        mock_hist.return_value = mock_ohlcv
+        atr = provider.get_atr("AAPL")
+    assert Decimal("1") <= atr <= Decimal("10")

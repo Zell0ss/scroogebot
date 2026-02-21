@@ -3,6 +3,7 @@ from decimal import Decimal
 
 import yfinance as yf
 import pandas as pd
+import ta.volatility
 
 from src.data.base import DataProvider
 from src.data.models import Price, OHLCV
@@ -25,3 +26,12 @@ class YahooDataProvider(DataProvider):
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
         return OHLCV(ticker=ticker, data=df)
+
+    def get_atr(self, ticker: str, period: int = 14) -> Decimal:
+        ohlcv = self.get_historical(ticker, period="3mo", interval="1d")
+        df = ohlcv.data
+        atr_series = ta.volatility.AverageTrueRange(
+            high=df["High"], low=df["Low"], close=df["Close"], window=period
+        ).average_true_range()
+        last = atr_series.dropna().iloc[-1]
+        return Decimal(str(round(float(last), 4)))
