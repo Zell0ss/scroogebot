@@ -67,3 +67,42 @@ def test_get_atr_flat_prices_gives_small_value():
         mock_hist.return_value = mock_ohlcv
         atr = provider.get_atr("AAPL")
     assert Decimal("1") <= atr <= Decimal("10")
+
+
+from src.sizing.broker import BROKER_REGISTRY, Broker
+
+
+def test_broker_registry_has_required_keys():
+    assert "degiro" in BROKER_REGISTRY
+    assert "myinvestor" in BROKER_REGISTRY
+    assert "paper" in BROKER_REGISTRY
+
+
+def test_degiro_commission_is_fixed_two_euros():
+    broker = BROKER_REGISTRY["degiro"]
+    assert broker.commissions.calcular(500.0) == 2.0
+    assert broker.commissions.calcular(50_000.0) == 2.0
+
+
+def test_myinvestor_commission_respects_min_max():
+    broker = BROKER_REGISTRY["myinvestor"]
+    assert broker.commissions.calcular(100.0) == 3.0      # min €3
+    assert broker.commissions.calcular(30_000.0) == 25.0  # max €25
+
+
+def test_paper_commission_same_as_degiro():
+    paper = BROKER_REGISTRY["paper"]
+    degiro = BROKER_REGISTRY["degiro"]
+    assert paper.commissions.calcular(1000.0) == degiro.commissions.calcular(1000.0)
+
+
+def test_broker_get_price_delegates_to_provider():
+    from unittest.mock import MagicMock, patch
+    from decimal import Decimal
+    broker = BROKER_REGISTRY["degiro"]
+    mock_price = MagicMock()
+    mock_price.price = Decimal("100.0")
+    mock_price.currency = "EUR"
+    with patch.object(broker._provider, "get_current_price", return_value=mock_price):
+        result = broker.get_price("SAN.MC")
+    assert result.price == Decimal("100.0")
