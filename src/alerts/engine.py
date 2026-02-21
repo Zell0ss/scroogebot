@@ -8,12 +8,18 @@ from src.data.yahoo import YahooDataProvider
 from src.strategies.base import Strategy
 from src.strategies.stop_loss import StopLossStrategy
 from src.strategies.ma_crossover import MACrossoverStrategy
+from src.strategies.rsi import RSIStrategy
+from src.strategies.bollinger import BollingerStrategy
+from src.strategies.safe_haven import SafeHavenStrategy
 
 logger = logging.getLogger(__name__)
 
 STRATEGY_MAP: dict[str, type[Strategy]] = {
     "stop_loss": StopLossStrategy,
     "ma_crossover": MACrossoverStrategy,
+    "rsi": RSIStrategy,
+    "bollinger": BollingerStrategy,
+    "safe_haven": SafeHavenStrategy,
 }
 
 

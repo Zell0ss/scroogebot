@@ -9,6 +9,9 @@ from src.db.models import Basket, BasketAsset, Asset
 from src.backtest.engine import BacktestEngine
 from src.strategies.stop_loss import StopLossStrategy
 from src.strategies.ma_crossover import MACrossoverStrategy
+from src.strategies.rsi import RSIStrategy
+from src.strategies.bollinger import BollingerStrategy
+from src.strategies.safe_haven import SafeHavenStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +22,9 @@ VALID_PERIODS = {"1mo", "3mo", "6mo", "1y", "2y"}
 STRATEGY_MAP = {
     "stop_loss": StopLossStrategy,
     "ma_crossover": MACrossoverStrategy,
+    "rsi": RSIStrategy,
+    "bollinger": BollingerStrategy,
+    "safe_haven": SafeHavenStrategy,
 }
 
 
