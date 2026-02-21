@@ -54,20 +54,25 @@ async def cmd_buscar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         return
 
     # 1. Local DB search
-    async with async_session_factory() as session:
-        rows = (await session.execute(
-            select(Asset, Basket)
-            .join(BasketAsset, BasketAsset.asset_id == Asset.id)
-            .join(Basket, BasketAsset.basket_id == Basket.id)
-            .where(
-                or_(
-                    Asset.name.ilike(f"%{query}%"),
-                    Asset.ticker.ilike(f"%{query}%"),
-                ),
-                Basket.active == True,
-                BasketAsset.active == True,
-            )
-        )).all()
+    try:
+        async with async_session_factory() as session:
+            rows = (await session.execute(
+                select(Asset, Basket)
+                .join(BasketAsset, BasketAsset.asset_id == Asset.id)
+                .join(Basket, BasketAsset.basket_id == Basket.id)
+                .where(
+                    or_(
+                        Asset.name.ilike(f"%{query}%"),
+                        Asset.ticker.ilike(f"%{query}%"),
+                    ),
+                    Basket.active == True,
+                    BasketAsset.active == True,
+                )
+            )).all()
+    except Exception:
+        logger.exception("buscar: DB error for query %r", query)
+        await update.message.reply_text("Error interno. Inténtalo de nuevo.")
+        return
 
     local: list[SearchResult] = [
         SearchResult(
@@ -79,7 +84,7 @@ async def cmd_buscar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
             basket_name=basket.name,
         )
         for asset, basket in rows
-    ]
+    ][:MAX_RESULTS]
 
     # 2. Yahoo fallback if local results are few
     yahoo: list[SearchResult] = []
