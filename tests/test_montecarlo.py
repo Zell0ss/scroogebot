@@ -61,3 +61,40 @@ def test_generate_paths_have_datetime_index():
     paths = sim.generate_paths(hist_df, n_simulations=3, horizon=10, rng=rng)
     for p in paths:
         assert isinstance(p.index, pd.DatetimeIndex)
+
+
+from src.backtest.montecarlo import AssetMonteCarloResult, _profile_line
+
+
+def _make_result(**overrides) -> AssetMonteCarloResult:
+    defaults = dict(
+        ticker="TEST", n_simulations=100, horizon=90, strategy_name="stop_loss", seed=42,
+        return_median=5.0, return_mean=4.5,
+        return_p10=1.0, return_p90=9.0, return_p05=-2.0,
+        prob_loss=0.15,
+        max_dd_median=4.0, max_dd_p95=10.0,
+        sharpe_median=1.1, win_rate_median=55.0,
+        var_95=-2.0, cvar_95=-3.5,
+    )
+    defaults.update(overrides)
+    return AssetMonteCarloResult(**defaults)
+
+
+def test_profile_favorable():
+    r = _make_result(prob_loss=0.10, sharpe_median=0.9)
+    assert "favorable" in _profile_line(r).lower()
+
+
+def test_profile_desfavorable_high_prob_loss():
+    r = _make_result(prob_loss=0.45, sharpe_median=0.9)
+    assert "desfavorable" in _profile_line(r).lower()
+
+
+def test_profile_desfavorable_low_sharpe():
+    r = _make_result(prob_loss=0.10, sharpe_median=0.3)
+    assert "desfavorable" in _profile_line(r).lower()
+
+
+def test_profile_moderado():
+    r = _make_result(prob_loss=0.25, sharpe_median=0.6)
+    assert "moderado" in _profile_line(r).lower()

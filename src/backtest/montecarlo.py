@@ -41,3 +41,44 @@ class MonteCarloSimulator:
             path = pd.Series(prices, index=future_dates, name="Close")
             paths.append(path)
         return paths
+
+
+# Thresholds for profile classification — adjust as needed
+_PROB_LOSS_LOW = 0.20
+_PROB_LOSS_HIGH = 0.40
+_SHARPE_GOOD = 0.8
+_SHARPE_LOW = 0.4
+
+
+@dataclass
+class AssetMonteCarloResult:
+    ticker: str
+    n_simulations: int
+    horizon: int
+    strategy_name: str
+    seed: int
+    # Return distribution
+    return_median: float
+    return_mean: float
+    return_p10: float
+    return_p90: float
+    return_p05: float
+    prob_loss: float          # fraction of simulations with negative return
+    # Drawdown
+    max_dd_median: float
+    max_dd_p95: float         # 95th percentile worst drawdown
+    # Quality
+    sharpe_median: float
+    win_rate_median: float
+    # Tail risk
+    var_95: float             # Value at Risk (5th percentile of returns)
+    cvar_95: float            # Conditional VaR / Expected Shortfall
+
+
+def _profile_line(r: AssetMonteCarloResult) -> str:
+    """Single-line risk profile summary with emoji."""
+    if r.prob_loss < _PROB_LOSS_LOW and r.sharpe_median > _SHARPE_GOOD:
+        return "✅ Perfil favorable"
+    if r.prob_loss > _PROB_LOSS_HIGH or r.sharpe_median < _SHARPE_LOW:
+        return "🔴 Perfil desfavorable, considerar ajustes"
+    return "⚠️ Perfil moderado, revisar riesgo"
