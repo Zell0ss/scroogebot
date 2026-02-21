@@ -5,6 +5,7 @@ from sqlalchemy import select
 
 from src.db.base import async_session_factory
 from src.db.models import User, Basket, BasketMember, Watchlist
+from src.bot.audit import log_command
 
 logger = logging.getLogger(__name__)
 
@@ -20,15 +21,19 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 first_name=tg_user.first_name,
             ))
             await session.commit()
-    await update.message.reply_text(
+    reply = (
         f"¡Hola {tg_user.first_name}! 🦆 Soy TioGilito.\n"
         "Usa /valoracion para ver el estado de tus cestas.\n"
         "Usa /cestas para ver las cestas disponibles."
     )
+    await update.message.reply_text(reply)
+    await log_command(update, "/start", True, "User registered or already exists")
 
 
 async def cmd_adduser(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Usage: /adduser @username OWNER|MEMBER basket name"""
+    raw_args = " ".join(context.args) if context.args else ""
+
     if len(context.args) < 3:
         await update.message.reply_text("Uso: /adduser @username OWNER|MEMBER nombre_cesta")
         return
@@ -46,10 +51,11 @@ async def cmd_adduser(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         )
         basket = basket_result.scalar_one_or_none()
         if not basket:
-            await update.message.reply_text(f"Cesta '{basket_name}' no encontrada.")
+            err = f"Cesta '{basket_name}' no encontrada."
+            await update.message.reply_text(err)
+            await log_command(update, "/adduser", False, err, raw_args)
             return
 
-        # Verify caller is OWNER
         caller_result = await session.execute(
             select(User).where(User.tg_id == update.effective_user.id)
         )
@@ -66,7 +72,9 @@ async def cmd_adduser(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             )
         )
         if not owner_check.scalar_one_or_none():
-            await update.message.reply_text("Solo el OWNER puede añadir usuarios.")
+            err = "Solo el OWNER puede añadir usuarios."
+            await update.message.reply_text(err)
+            await log_command(update, "/adduser", False, err, raw_args)
             return
 
         target_result = await session.execute(
@@ -74,9 +82,9 @@ async def cmd_adduser(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         )
         target = target_result.scalar_one_or_none()
         if not target:
-            await update.message.reply_text(
-                f"@{username} no encontrado. El usuario debe enviar /start primero."
-            )
+            err = f"@{username} no encontrado. El usuario debe enviar /start primero."
+            await update.message.reply_text(err)
+            await log_command(update, "/adduser", False, err, raw_args)
             return
 
         existing = await session.execute(
@@ -91,7 +99,9 @@ async def cmd_adduser(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         else:
             session.add(BasketMember(basket_id=basket.id, user_id=target.id, role=role))
         await session.commit()
-        await update.message.reply_text(f"✅ @{username} → {role} en '{basket_name}'.")
+        ok_msg = f"@{username} → {role} en '{basket_name}'"
+        await update.message.reply_text(f"✅ {ok_msg}.")
+        await log_command(update, "/adduser", True, ok_msg, raw_args)
 
 
 async def cmd_watchlist(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -122,6 +132,8 @@ async def cmd_watchlist(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
 async def cmd_addwatch(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Usage: /addwatch TICKER Company name | note"""
+    raw_args = " ".join(context.args) if context.args else ""
+
     if not context.args:
         await update.message.reply_text("Uso: /addwatch TICKER Nombre | nota")
         return
@@ -142,7 +154,9 @@ async def cmd_addwatch(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             note=note.strip() or None, added_by=user.id,
         ))
         await session.commit()
+    ok_msg = f"{ticker} añadido a watchlist"
     await update.message.reply_text(f"✅ {ticker} añadido a watchlist.")
+    await log_command(update, "/addwatch", True, ok_msg, raw_args)
 
 
 def get_handlers():

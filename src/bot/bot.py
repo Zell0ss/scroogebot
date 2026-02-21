@@ -14,6 +14,7 @@ from src.bot.handlers.analysis import get_handlers as analysis_handlers
 from src.bot.handlers.admin import get_handlers as admin_handlers
 from src.bot.handlers.backtest import get_handlers as backtest_handlers
 from src.alerts.engine import AlertEngine
+from src.bot.audit import log_command
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +64,9 @@ async def handle_alert_callback(update: Update, context) -> None:
             alert.status = "REJECTED"
             alert.resolved_at = datetime.utcnow()
             await session.commit()
-            await query.edit_message_text(f"❌ Alerta rechazada: {asset.ticker}")
+            msg = f"Alerta rechazada: {asset.ticker}"
+            await query.edit_message_text(f"❌ {msg}")
+            await log_command(update, "/alert:reject", True, msg, f"alert_id={alert_id}")
             return
 
         if action == "confirm":
@@ -91,7 +94,6 @@ async def handle_alert_callback(update: Update, context) -> None:
                         return
 
                 elif alert.signal == "BUY":
-                    # Invest up to 10% of available cash
                     qty = (basket.cash * Decimal("0.10") / price).quantize(Decimal("0.01"))
                     if qty > 0:
                         await executor.buy(
@@ -105,12 +107,14 @@ async def handle_alert_callback(update: Update, context) -> None:
                 alert.status = "CONFIRMED"
                 alert.resolved_at = datetime.utcnow()
                 await session.commit()
-                await query.edit_message_text(
-                    f"✅ {alert.signal} {asset.ticker} ejecutado a {price:.2f}"
-                )
+                ok_msg = f"{alert.signal} {asset.ticker} ejecutado a {price:.2f}"
+                await query.edit_message_text(f"✅ {ok_msg}")
+                await log_command(update, "/alert:confirm", True, ok_msg, f"alert_id={alert_id}")
             except Exception as e:
-                logger.error(f"Alert execution error: {e}")
-                await query.edit_message_text(f"❌ Error: {e}")
+                err = str(e)
+                logger.error(f"Alert execution error: {err}")
+                await query.edit_message_text(f"❌ Error: {err}")
+                await log_command(update, "/alert:confirm", False, err, f"alert_id={alert_id}")
 
 
 async def run() -> None:
