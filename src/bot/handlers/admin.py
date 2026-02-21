@@ -54,17 +54,20 @@ async def cmd_adduser(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             select(User).where(User.tg_id == update.effective_user.id)
         )
         caller = caller_result.scalar_one_or_none()
-        if caller:
-            owner_check = await session.execute(
-                select(BasketMember).where(
-                    BasketMember.basket_id == basket.id,
-                    BasketMember.user_id == caller.id,
-                    BasketMember.role == "OWNER",
-                )
+        if not caller:
+            await update.message.reply_text("Usa /start primero.")
+            return
+
+        owner_check = await session.execute(
+            select(BasketMember).where(
+                BasketMember.basket_id == basket.id,
+                BasketMember.user_id == caller.id,
+                BasketMember.role == "OWNER",
             )
-            if not owner_check.scalar_one_or_none():
-                await update.message.reply_text("Solo el OWNER puede añadir usuarios.")
-                return
+        )
+        if not owner_check.scalar_one_or_none():
+            await update.message.reply_text("Solo el OWNER puede añadir usuarios.")
+            return
 
         target_result = await session.execute(
             select(User).where(User.username == username)
