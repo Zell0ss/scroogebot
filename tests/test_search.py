@@ -1,4 +1,7 @@
+from unittest.mock import patch, MagicMock
+
 from src.data.models import SearchResult
+from src.data.yahoo import YahooDataProvider
 
 
 def test_search_result_in_basket():
@@ -26,11 +29,6 @@ def test_search_result_not_in_basket():
     )
     assert r.in_basket is False
     assert r.basket_name is None
-
-import pytest
-from unittest.mock import patch, MagicMock
-from src.data.yahoo import YahooDataProvider
-from src.data.models import SearchResult
 
 
 def _mock_quotes():
