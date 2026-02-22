@@ -287,6 +287,24 @@ async def test_eliminarcesta_with_positions():
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
+async def test_nuevacesta_reply_includes_capital():
+    """Bot must confirm the €10.000 starting capital in its reply."""
+    caller = MagicMock(id=1)
+    session = _make_session(_exec(caller), _exec(None))
+    session.flush = AsyncMock()
+    session.add = MagicMock()
+
+    update = _make_update()
+    ctx = _make_context(["MiCesta", "stop_loss"])
+
+    with patch("src.bot.handlers.admin.async_session_factory", return_value=_wrap(session)):
+        await cmd_nuevacesta(update, ctx)
+
+    reply = update.message.reply_text.call_args[0][0]
+    assert "10.000" in reply or "10000" in reply
+
+
+@pytest.mark.asyncio
 async def test_eliminarcesta_not_owner():
     caller = MagicMock(id=2)
     basket = MagicMock(id=10, name="TechGrowth", active=True)
