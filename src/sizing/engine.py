@@ -16,6 +16,7 @@ def calculate_sizing(
     ticker: str,
     stop_loss_manual: float | None,
     broker: Broker,
+    capital_total: float = CAPITAL_TOTAL,
 ) -> SizingResult:
     # 1. Price (convert to EUR if needed)
     price_obj = broker.get_price(ticker)
@@ -59,12 +60,13 @@ def calculate_sizing(
             com_compra=0.0,
             com_venta=0.0,
             broker_nombre=broker.name,
+            capital_total=capital_total,
             aviso="❌ Stop loss debe ser inferior al precio actual",
         )
 
     # 3. Sizing
-    riesgo_max = CAPITAL_TOTAL * RIESGO_MAX_PCT
-    posicion_max = CAPITAL_TOTAL * POSICION_MAX_PCT
+    riesgo_max = capital_total * RIESGO_MAX_PCT
+    posicion_max = capital_total * POSICION_MAX_PCT
 
     has_pct = broker.commissions.comision_pct > 0
 
@@ -125,11 +127,12 @@ def calculate_sizing(
         acciones=acciones,
         factor_limite=factor,
         nominal=nominal if acciones > 0 else 0.0,
-        pct_cartera=(nominal / CAPITAL_TOTAL * 100) if acciones > 0 else 0.0,
+        pct_cartera=(nominal / capital_total * 100) if acciones > 0 else 0.0,
         riesgo_maximo=riesgo_max,
         riesgo_real=riesgo_real if acciones > 0 else 0.0,
         com_compra=com_compra,
         com_venta=com_venta,
         broker_nombre=broker.name,
+        capital_total=capital_total,
         aviso=aviso,
     )

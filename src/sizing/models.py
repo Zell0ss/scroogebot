@@ -37,4 +37,5 @@ class SizingResult:
     com_compra:    float
     com_venta:     float
     broker_nombre: str
+    capital_total: float
     aviso:         str | None

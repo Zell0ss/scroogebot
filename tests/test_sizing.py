@@ -191,6 +191,18 @@ def test_sizing_stop_above_price_returns_zero_shares():
     assert "stop loss" in result.aviso.lower() or "inferior" in result.aviso.lower()
 
 
+def test_sizing_uses_provided_capital():
+    """capital_total param must replace the hardcoded CAPITAL_TOTAL constant."""
+    broker = _mock_broker_engine(precio=10.0, atr=0.5)
+    # capital_total=10_000 → riesgo_max=75, posicion_max=2_000
+    result = calculate_sizing("SAN.MC", stop_loss_manual=9.0, broker=broker, capital_total=10_000.0)
+    assert result.riesgo_maximo == pytest.approx(75.0), "riesgo_max must be 0.75% of 10_000"
+    assert result.capital_total == pytest.approx(10_000.0), "capital_total must be stored in result"
+    # riesgo_disp = 75 - 2(buy) - 2(sell) = 71; acciones_riesgo = 71; acciones_nominal = 200 → 71
+    assert result.acciones == 71
+    assert result.factor_limite == "riesgo"
+
+
 def test_sizing_pct_commission_iterative_convergence():
     """MyInvestor 0.12%, min 3, max 25: riesgo_real must not exceed riesgo_max."""
     from unittest.mock import MagicMock

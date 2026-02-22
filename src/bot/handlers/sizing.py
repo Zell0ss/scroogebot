@@ -4,7 +4,7 @@ from telegram.ext import ContextTypes, CommandHandler
 from sqlalchemy import select
 
 from src.db.base import async_session_factory
-from src.db.models import Basket, BasketAsset, Asset
+from src.db.models import Basket, BasketAsset, Asset, User
 from src.sizing.broker import BROKER_REGISTRY, Broker
 from src.sizing.engine import calculate_sizing, CAPITAL_TOTAL
 from src.sizing.models import SizingResult
@@ -27,10 +27,17 @@ def _volatilidad(atr: float, precio: float) -> str:
     return "alta"
 
 
-def _format_result(r: SizingResult) -> str:
+def _format_result(r: SizingResult, basket_name: str | None = None) -> str:
+    if basket_name:
+        header = (
+            f"🗂 `{basket_name}` · Capital: €{_fmt(r.capital_total)}\n"
+        )
+    else:
+        header = f"⚠️ Sin cesta activa — capital de referencia: €{_fmt(r.capital_total)}\n"
+
     lines = [
         f"📊 *Position Sizing — {r.company_name} ({r.ticker})*",
-        "",
+        header,
         f"Precio actual:      €{_fmt(r.precio)}",
         f"Stop loss:          €{_fmt(r.stop_loss)}  ({r.stop_tipo})",
     ]
@@ -43,7 +50,7 @@ def _format_result(r: SizingResult) -> str:
         "",
         f"Acciones:           {r.acciones}  (limitado por {r.factor_limite})",
         f"Posición nominal:   €{_fmt(r.nominal)} ({_fmt(r.pct_cartera)}% de cartera)",
-        f"Riesgo máximo:      €{_fmt(r.riesgo_maximo)} ({_fmt(r.riesgo_maximo / CAPITAL_TOTAL * 100)}%)",
+        f"Riesgo máximo:      €{_fmt(r.riesgo_maximo)} ({_fmt(r.riesgo_maximo / r.capital_total * 100)}%)",
         "",
         f"Comisiones ({r.broker_nombre}): €{_fmt(r.com_compra)} compra + €{_fmt(r.com_venta)} venta",
         f"Riesgo real:        €{_fmt(r.riesgo_real)}",
@@ -58,14 +65,17 @@ def _format_result(r: SizingResult) -> str:
 async def cmd_sizing(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not context.args:
         await update.message.reply_text(
-            "Uso: /sizing TICKER [STOP_LOSS]\n"
+            "Uso: /sizing TICKER [STOP_LOSS [CAPITAL]]\n"
             "Ejemplo: /sizing SAN.MC\n"
-            "Ejemplo: /sizing SAN.MC 3.85"
+            "Ejemplo: /sizing SAN.MC 3.85\n"
+            "Ejemplo: /sizing SAN.MC 3.85 8000"
         )
         return
 
     ticker = context.args[0].upper()
     stop_manual = None
+    capital_manual = None
+
     if len(context.args) >= 2:
         try:
             stop_manual = float(context.args[1])
@@ -75,7 +85,16 @@ async def cmd_sizing(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
             )
             return
 
-    # Look up baskets containing this ticker
+    if len(context.args) >= 3:
+        try:
+            capital_manual = float(context.args[2])
+        except ValueError:
+            await update.message.reply_text(
+                "Capital debe ser un número. Ej: /sizing SAN.MC 3.85 8000"
+            )
+            return
+
+    # Look up baskets containing this ticker (for broker resolution)
     async with async_session_factory() as session:
         rows = (await session.execute(
             select(Basket, Asset)
@@ -83,6 +102,27 @@ async def cmd_sizing(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
             .join(Asset, BasketAsset.asset_id == Asset.id)
             .where(Asset.ticker == ticker, Basket.active == True, BasketAsset.active == True)
         )).all()
+
+        # Resolve user's active basket for capital
+        basket_name: str | None = None
+        capital_total: float = capital_manual or CAPITAL_TOTAL
+
+        if capital_manual is None:
+            user_result = await session.execute(
+                select(User).where(User.tg_id == update.effective_user.id)
+            )
+            user = user_result.scalar_one_or_none()
+            if user and user.active_basket_id:
+                basket_result = await session.execute(
+                    select(Basket).where(
+                        Basket.id == user.active_basket_id,
+                        Basket.active == True,
+                    )
+                )
+                active_basket = basket_result.scalar_one_or_none()
+                if active_basket:
+                    basket_name = active_basket.name
+                    capital_total = float(active_basket.cash)
 
     brokers_to_use: list[tuple[str, Broker]] = []
     if rows:
@@ -101,8 +141,8 @@ async def cmd_sizing(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     results = []
     for label, broker in brokers_to_use:
         try:
-            r = calculate_sizing(ticker, stop_manual, broker)
-            results.append(_format_result(r))
+            r = calculate_sizing(ticker, stop_manual, broker, capital_total=capital_total)
+            results.append(_format_result(r, basket_name=basket_name))
         except Exception as e:
             logger.error(f"Sizing error {ticker} broker {label}: {e}")
             results.append(f"❌ Error calculando sizing para {ticker}: {e}")

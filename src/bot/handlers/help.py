@@ -41,7 +41,7 @@ COMMAND_LIST = [
 
     # --- Sizing ---
     ("__header__", "", "📐 *Sizing*"),
-    ("sizing", "TICKER [stop\\_loss]", "Position sizing con comisiones del broker"),
+    ("sizing", "TICKER [stop [capital]]", "Position sizing usando capital de la cesta activa"),
 
     # --- Cestas (gestión) ---
     ("__header__", "", "🗂 *Gestión de cestas*"),

@@ -482,7 +482,7 @@ Para Mi_Apuesta_jmc (que intuyo que es la cartera más agresiva/especulativa): R
 ### 4.2 Simular Mi_Apuesta
 
 ```
-/montecarlo Mi_Apuesta_jmc
+/montecarlo Mi_Apuesta
 ```
 
 <!-- 📸 Captura: /montecarlo Mi_Apuesta mostrando distribución con percentiles p10/p50/p90 -->
