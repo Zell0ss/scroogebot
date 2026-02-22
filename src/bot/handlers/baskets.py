@@ -18,7 +18,7 @@ async def cmd_cestas(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
             return
         lines = ["🗂 *Cestas disponibles*\n"]
         for b in baskets:
-            lines.append(f"• *{b.name}* — estrategia: `{b.strategy}` ({b.risk_profile})")
+            lines.append(f"• `{b.name}` — estrategia: `{b.strategy}` ({b.risk_profile})")
         await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
 
@@ -45,7 +45,7 @@ async def cmd_cesta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             .where(BasketMember.basket_id == basket.id)
         )
         lines = [
-            f"🗂 *{basket.name}*",
+            f"🗂 `{basket.name}`",
             f"Estrategia: `{basket.strategy}` | Perfil: {basket.risk_profile}",
             f"Cash: {basket.cash:.2f}€",
             "\n*Assets:*",
@@ -86,7 +86,7 @@ async def cmd_sel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 basket = basket_result.scalar_one_or_none()
                 name = basket.name if basket else "desconocida"
                 await update.message.reply_text(
-                    f"🗂 Cesta activa: *{name}*",
+                    f"🗂 Cesta activa: `{name}`",
                     parse_mode="Markdown",
                 )
             return
@@ -104,7 +104,7 @@ async def cmd_sel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         caller.active_basket_id = basket.id
         await session.commit()
         await update.message.reply_text(
-            f"🗂 Cesta activa: *{basket.name}*",
+            f"🗂 Cesta activa: `{basket.name}`",
             parse_mode="Markdown",
         )
 

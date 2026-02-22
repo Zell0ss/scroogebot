@@ -55,7 +55,7 @@ class MonteCarloFormatter:
         seed: int,
     ) -> str:
         return (
-            f"🎲 *Monte Carlo — {basket_name}* "
+            f"🎲 *Monte Carlo —* `{basket_name}` "
             f"({n_sims} sims, {horizon} días, seed: {seed})\n"
             f"   Estrategia: `{strategy}` | Activos: {n_assets}\n"
         )

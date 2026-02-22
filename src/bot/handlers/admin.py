@@ -326,7 +326,7 @@ async def cmd_estrategia(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
         if new_strategy is None:
             await update.message.reply_text(
-                f"📊 *{basket_name}* usa estrategia: `{basket.strategy}`\n"
+                f"📊 `{basket_name}` usa estrategia: `{basket.strategy}`\n"
                 f"Disponibles: {_STRATEGY_LIST}",
                 parse_mode="Markdown",
             )
@@ -346,7 +346,7 @@ async def cmd_estrategia(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         basket.strategy = new_strategy
         await session.commit()
         await update.message.reply_text(
-            f"✅ Estrategia de *{basket_name}* cambiada a `{new_strategy}`",
+            f"✅ Estrategia de `{basket_name}` cambiada a `{new_strategy}`",
             parse_mode="Markdown",
         )
 
@@ -436,7 +436,7 @@ async def cmd_eliminarcesta(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         if open_positions:
             tickers = ", ".join(p.ticker for p in open_positions)
             await update.message.reply_text(
-                f"❌ No se puede eliminar: *{basket_name}* tiene posiciones abiertas ({tickers}).",
+                f"❌ No se puede eliminar: `{basket_name}` tiene posiciones abiertas ({tickers}).",
                 parse_mode="Markdown",
             )
             return

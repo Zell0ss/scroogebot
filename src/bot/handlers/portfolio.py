@@ -42,7 +42,7 @@ async def cmd_valoracion(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 finviz_url = f"https://finviz.com/screener.ashx?v=111&t={tickers}" if tickers else ""
                 sign = lambda v: "+" if v >= 0 else ""
                 lines = [
-                    f"📊 *{val.basket_name}* — {datetime.now().strftime('%d %b %Y %H:%M')}",
+                    f"📊 `{val.basket_name}` — {datetime.now().strftime('%d %b %Y %H:%M')}",
                     "",
                     f"💼 Capital invertido: {_fmt(val.total_invested)}€",
                     f"💰 Valor actual:      {_fmt(val.total_value)}€",
@@ -72,9 +72,9 @@ async def cmd_cartera(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 .where(Position.basket_id == basket.id, Position.quantity > 0)
             )).all()
             if not rows:
-                await update.message.reply_text(f"*{basket.name}*: sin posiciones.", parse_mode="Markdown")
+                await update.message.reply_text(f"`{basket.name}`: sin posiciones.", parse_mode="Markdown")
                 continue
-            lines = [f"💼 *{basket.name}*\n"]
+            lines = [f"💼 `{basket.name}`\n"]
             for pos, asset in rows:
                 lines.append(f"{asset.ticker:<8} {_fmt(pos.quantity, 4)} acc @ {_fmt(pos.avg_price)}")
             lines.append(f"\n💵 Cash: {_fmt(basket.cash)}€")
@@ -91,9 +91,9 @@ async def cmd_historial(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                 .order_by(Order.created_at.desc()).limit(10)
             )).all()
             if not rows:
-                await update.message.reply_text(f"*{basket.name}*: sin órdenes.", parse_mode="Markdown")
+                await update.message.reply_text(f"`{basket.name}`: sin órdenes.", parse_mode="Markdown")
                 continue
-            lines = [f"📋 *{basket.name}* — Últimas 10 órdenes\n"]
+            lines = [f"📋 `{basket.name}` — Últimas 10 órdenes\n"]
             for order, asset in rows:
                 icon = "🟢" if order.type == "BUY" else "🔴"
                 dt = order.created_at.strftime("%d/%m %H:%M")

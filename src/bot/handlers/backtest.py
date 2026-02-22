@@ -45,7 +45,7 @@ async def cmd_backtest(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             strategy_cls = STRATEGY_MAP.get(basket.strategy)
             if not strategy_cls:
                 await update.message.reply_text(
-                    f"*{basket.name}*: estrategia `{basket.strategy}` no soporta backtest aún.",
+                    f"`{basket.name}`: estrategia `{basket.strategy}` no soporta backtest aún.",
                     parse_mode="Markdown",
                 )
                 continue
@@ -60,11 +60,11 @@ async def cmd_backtest(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
             if not assets:
                 await update.message.reply_text(
-                    f"*{basket.name}*: sin activos activos.", parse_mode="Markdown"
+                    f"`{basket.name}`: sin activos activos.", parse_mode="Markdown"
                 )
                 continue
 
-            lines = [f"📊 *Backtest: {basket.name}* ({period})\n"]
+            lines = [f"📊 *Backtest:* `{basket.name}` ({period})\n"]
             for asset in assets:
                 try:
                     loop = asyncio.get_event_loop()

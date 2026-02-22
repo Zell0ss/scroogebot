@@ -122,7 +122,7 @@ async def _handle_order(update: Update, context, order_type: str) -> None:
 
             verb = "Compra" if order_type == "BUY" else "Venta"
             ok_msg = (
-                f"🗂 *{basket.name}*\n"
+                f"🗂 `{basket.name}`\n"
                 f"✅ *{verb} ejecutada*\n"
                 f"{quantity} {ticker} × {price_obj.price:.2f} {price_obj.currency}\n"
                 f"Total: {quantity * price_obj.price:.2f} {price_obj.currency}"
