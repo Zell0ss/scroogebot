@@ -60,7 +60,7 @@ class BacktestEngine:
                 elif signal.action == "SELL":
                     exits.iloc[i] = True
 
-        pf = vbt.Portfolio.from_signals(close, entries, exits, init_cash=10_000)
+        pf = vbt.Portfolio.from_signals(close, entries, exits, init_cash=10_000, freq="1D")
         stats = pf.stats()
 
         bh_return = float((close.iloc[-1] - close.iloc[0]) / close.iloc[0] * 100)

@@ -1,33 +1,39 @@
 # TOMORROW — ScroogeBot next session context
 
-## Status: Parts 1, 2, 3 + market-hours + /logs COMPLETE ✅
+## Status: Parts 1, 2, 3 + extras COMPLETE ✅
 
-All features implemented, tested (30/30 pass), committed and pushed to
+All features implemented, tested (80/80 pass), committed and pushed to
 https://github.com/Zell0ss/scroogebot
 
 ---
 
-## What was done today (2026-02-21)
+## What was done today (2026-02-22)
 
 ### Added this session:
-- `src/scheduler/market_hours.py` — UTC-based open/close guard (NYSE, IBEX; weekends closed; unknown markets pass through)
-- `AlertEngine`: skip entire scan when all markets closed; skip individual assets outside their market hours
-- `/logs [N]` — OWNER-only, last N (default 20, max 50) command_logs rows
-- 13 new tests in `tests/test_market_hours.py` (30 total)
+- `/help` command — lists all commands with descriptions (unknown-command fallback included)
+- `/montecarlo <ticker> [días] [sims]` — Monte Carlo price simulation with vectorbt metrics and risk profile classification
+- `/buscar <texto>` — ticker search (local DB assets + Yahoo Finance supplementary results, deduplicated)
+- `/register <tg_id> <username>` — OWNER-only pre-registration of new users
+- Improved `/start` — now blocks unregistered users with helpful message instead of silently registering them; auto-fills first_name/username on next login
+- Improved `/adduser` — role argument can be in position 1 or last position (more flexible syntax)
+- `src/backtest/engine.py` — added `freq="1D"` to vectorbt `from_signals` call (fixes frequency warning)
+- `src/config.py` — `extra="ignore"` in Settings to avoid validation errors from unknown env vars
+- `FUTURE.md` — documented commission-aware backtest improvement idea
+- `.gitignore` — log files now excluded
+- 80 tests total (all passing)
 
 ### Previous (Part 3):
-- BacktestEngine + /backtest command (vectorbt, run_in_executor)
-- RSIStrategy, BollingerStrategy, SafeHavenStrategy
-- systemd scroogebot.service
-- loguru app logging + command_logs table + audit.py
+- BacktestEngine + /backtest, RSI/Bollinger/SafeHaven strategies
+- market-hours guard, /logs command
+- systemd service, loguru + command_logs audit table
 
 ---
 
 ## Git log (recent)
-- feat: market-hours guard + /logs command  ← just committed
-- 17de84a docs: update CHANGELOG and TOMORROW for Part 3 completion
-- 242cbe3 feat: loguru app logging + command_logs DB audit table
-- 95497ed feat: RSI, Bollinger, SafeHaven strategies
+- fix/feat: /start registration guard, /register command, /adduser flex role  ← just committed
+- feat: /buscar — local DB + Yahoo Finance ticker search
+- feat: register /montecarlo command in bot
+- feat: /help command and unknown command fallback handler
 
 ---
 
@@ -41,3 +47,4 @@ https://github.com/Zell0ss/scroogebot
 ## Possible next improvements
 - Add LSE market hours to config.yaml (currently only NYSE and IBEX)
 - Prometheus metrics endpoint
+- Commission-aware backtest (see FUTURE.md — connect sizing CommissionStructure to vectorbt fees param)

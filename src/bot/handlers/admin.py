@@ -12,37 +12,105 @@ logger = logging.getLogger(__name__)
 
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not update.message:
+        return
     tg_user = update.effective_user
     async with async_session_factory() as session:
         result = await session.execute(select(User).where(User.tg_id == tg_user.id))
-        if not result.scalar_one_or_none():
-            session.add(User(
-                tg_id=tg_user.id,
-                username=tg_user.username,
-                first_name=tg_user.first_name,
-            ))
-            await session.commit()
-    reply = (
+        user = result.scalar_one_or_none()
+        if not user:
+            uname = f"@{tg_user.username}" if tg_user.username else "(sin username)"
+            await update.message.reply_text(
+                f"🔒 No estás registrado en el bot.\n\n"
+                f"Pasa estos datos al administrador:\n"
+                f"  ID: `{tg_user.id}`\n"
+                f"  Usuario: `{uname}`",
+                parse_mode="Markdown",
+            )
+            await log_command(update, "/start", False, "Unregistered user")
+            return
+        # Complete registration: fill in first_name/username from Telegram if missing
+        if not user.first_name:
+            user.first_name = tg_user.first_name
+        if not user.username:
+            user.username = tg_user.username
+        await session.commit()
+    await update.message.reply_text(
         f"¡Hola {tg_user.first_name}! 🦆 Soy TioGilito.\n"
         "Usa /valoracion para ver el estado de tus cestas.\n"
         "Usa /cestas para ver las cestas disponibles."
     )
-    await update.message.reply_text(reply)
-    await log_command(update, "/start", True, "User registered or already exists")
+    await log_command(update, "/start", True, "User welcomed")
+
+
+async def cmd_register(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Usage: /register <tg_id> <username>  — pre-register a user (OWNER only)."""
+    if not update.message:
+        return
+    raw_args = " ".join(context.args) if context.args else ""
+    if len(context.args) < 2:
+        await update.message.reply_text("Uso: /register <tg_id> <username>")
+        return
+
+    try:
+        new_tg_id = int(context.args[0])
+    except ValueError:
+        await update.message.reply_text("tg_id debe ser un número.")
+        return
+    new_username = context.args[1].lstrip("@")
+
+    async with async_session_factory() as session:
+        caller_result = await session.execute(
+            select(User).where(User.tg_id == update.effective_user.id)
+        )
+        caller = caller_result.scalar_one_or_none()
+        if not caller:
+            await update.message.reply_text("Usa /start primero.")
+            return
+
+        owner_check = await session.execute(
+            select(BasketMember).where(
+                BasketMember.user_id == caller.id,
+                BasketMember.role == "OWNER",
+            )
+        )
+        if not owner_check.scalar_one_or_none():
+            err = "Solo los OWNER pueden registrar usuarios."
+            await update.message.reply_text(err)
+            await log_command(update, "/register", False, err, raw_args)
+            return
+
+        existing = await session.execute(select(User).where(User.tg_id == new_tg_id))
+        if existing.scalar_one_or_none():
+            await update.message.reply_text(f"El usuario con ID `{new_tg_id}` ya está registrado.", parse_mode="Markdown")
+            return
+
+        session.add(User(tg_id=new_tg_id, username=new_username))
+        await session.commit()
+
+    ok_msg = f"@{new_username} (id:{new_tg_id}) pre-registrado. Debe enviar /start para completar el registro."
+    await update.message.reply_text(f"✅ {ok_msg}")
+    await log_command(update, "/register", True, ok_msg, raw_args)
 
 
 async def cmd_adduser(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Usage: /adduser @username OWNER|MEMBER basket name"""
     raw_args = " ".join(context.args) if context.args else ""
 
+    if not update.message:
+        return
     if len(context.args) < 3:
         await update.message.reply_text("Uso: /adduser @username OWNER|MEMBER nombre_cesta")
         return
     username = context.args[0].lstrip("@")
-    role = context.args[1].upper()
-    basket_name = " ".join(context.args[2:])
-
-    if role not in ("OWNER", "MEMBER"):
+    # Accept role in position 1 (/adduser @u ROLE basket) or last (/adduser @u basket ROLE)
+    if context.args[1].upper() in ("OWNER", "MEMBER"):
+        role = context.args[1].upper()
+        basket_name = " ".join(context.args[2:])
+    elif context.args[-1].upper() in ("OWNER", "MEMBER"):
+        role = context.args[-1].upper()
+        basket_name = " ".join(context.args[1:-1])
+    else:
         await update.message.reply_text("Rol debe ser OWNER o MEMBER.")
         return
 
@@ -209,6 +277,7 @@ async def cmd_logs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 def get_handlers():
     return [
         CommandHandler("start", cmd_start),
+        CommandHandler("register", cmd_register),
         CommandHandler("adduser", cmd_adduser),
         CommandHandler("watchlist", cmd_watchlist),
         CommandHandler("addwatch", cmd_addwatch),

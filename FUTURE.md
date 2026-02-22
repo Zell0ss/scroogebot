@@ -154,6 +154,29 @@ groups:
 
 ---
 
+## Backtest commission-aware
+
+Una vez implementado el módulo `src/sizing/` con `CommissionStructure` y el `BROKER_REGISTRY`,
+conectar las comisiones reales al backtest es pasar un parámetro adicional a vectorbt:
+
+```python
+# src/backtest/engine.py — mejora futura
+pf = vbt.Portfolio.from_signals(
+    close, entries, exits,
+    init_cash=10_000,
+    fees=broker.commissions.comision_pct / 100,   # porcentual
+    fixed_fees=broker.commissions.comision_fija,   # fijo por operación
+    freq="1D",
+)
+```
+
+El backtest ya conoce la cesta (`basket`); con el campo `basket.broker` podrá
+recuperar el broker del `BROKER_REGISTRY` y aplicar sus comisiones exactas.
+Esto hará los backtests significativamente más realistas, especialmente para
+estrategias con muchas operaciones.
+
+---
+
 ## Long-term ideas
 
 - **Portfolio value chart**: log `scroogebot_portfolio_value_eur` every scan;
