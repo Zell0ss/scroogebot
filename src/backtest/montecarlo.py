@@ -1,4 +1,5 @@
 import logging
+import math
 from dataclasses import dataclass
 from decimal import Decimal
 
@@ -148,10 +149,19 @@ class MonteCarloAnalyzer:
             )
             stats = pf.stats()
 
-            returns.append(float(stats.get("Total Return [%]", 0) or 0))
-            max_dds.append(float(stats.get("Max Drawdown [%]", 0) or 0))
-            sharpes.append(float(stats.get("Sharpe Ratio", 0) or 0))
-            win_rates.append(float(stats.get("Win Rate [%]", 0) or 0))
+            def _safe(val, default: float = 0.0) -> float:
+                v = float(val) if val is not None else default
+                return v if math.isfinite(v) else default
+
+            returns.append(_safe(stats.get("Total Return [%]")))
+            max_dds.append(_safe(stats.get("Max Drawdown [%]")))
+            sharpes.append(_safe(stats.get("Sharpe Ratio")))
+            win_rates.append(_safe(stats.get("Win Rate [%]")))
+
+        if not returns:
+            raise RuntimeError(
+                f"All {n_simulations} simulations failed for ticker '{ticker}'"
+            )
 
         arr = np.array(returns)
         var_95 = float(np.percentile(arr, 5))
