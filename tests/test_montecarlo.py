@@ -82,7 +82,9 @@ def _make_result(**overrides) -> AssetMonteCarloResult:
 
 def test_profile_favorable():
     r = _make_result(prob_loss=0.10, sharpe_median=0.9)
-    assert "favorable" in _profile_line(r).lower()
+    result = _profile_line(r).lower()
+    assert "favorable" in result
+    assert "desfavorable" not in result
 
 
 def test_profile_desfavorable_high_prob_loss():
