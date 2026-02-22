@@ -16,6 +16,8 @@ Bot de Telegram para paper-trading de cestas compartidas con alertas automática
 8. [Roles](#roles)
 9. [Alertas automáticas](#alertas-automáticas)
 
+> **Gestión de cestas** (`/estrategia`, `/nuevacesta`, `/eliminarcesta`) está documentada al final de la sección [Cestas](#cestas).
+
 ---
 
 ## Primeros pasos
@@ -140,6 +142,57 @@ Miembros:
   • @admin [OWNER]
   • @ElParra72 [MEMBER]
 ```
+
+---
+
+### `/estrategia <nombre_cesta> [nueva_estrategia]`
+
+**Sin segundo argumento:** muestra la estrategia actual de la cesta y la lista de estrategias disponibles.
+
+```
+/estrategia Cesta Agresiva
+→ 📊 Cesta Agresiva usa estrategia: ma_crossover
+  Disponibles: stop_loss, ma_crossover, rsi, bollinger, safe_haven
+```
+
+**Con segundo argumento:** cambia la estrategia. Solo el **OWNER** de la cesta puede hacerlo.
+
+```
+/estrategia Cesta Agresiva rsi
+→ ✅ Estrategia de Cesta Agresiva cambiada a rsi
+```
+
+---
+
+### `/nuevacesta <nombre> <estrategia>`
+
+Crea una nueva cesta de paper trading. Cualquier usuario registrado puede crear una cesta; el creador se convierte automáticamente en **OWNER**.
+
+```
+/nuevacesta TechGrowth rsi
+→ ✅ Cesta "TechGrowth" creada con estrategia rsi. Eres OWNER.
+```
+
+- El nombre puede tener varias palabras (el último token es siempre la estrategia).
+- Falla si ya existe una cesta con ese nombre.
+- Estrategias válidas: `stop_loss`, `ma_crossover`, `rsi`, `bollinger`, `safe_haven`.
+- La cesta se crea con €10.000 de cash inicial. Para añadir activos usa `/adduser` y opera con `/compra`.
+
+---
+
+### `/eliminarcesta <nombre>`
+
+Desactiva (soft-delete) una cesta. Solo el **OWNER** puede hacerlo, y únicamente si la cesta no tiene posiciones abiertas.
+
+```
+/eliminarcesta TechGrowth
+→ ✅ Cesta "TechGrowth" desactivada.
+
+/eliminarcesta Cesta Agresiva   ← con posiciones abiertas
+→ ❌ No se puede eliminar: Cesta Agresiva tiene posiciones abiertas (AAPL, MSFT).
+```
+
+> La cesta desaparece de `/cestas` y deja de ser escaneada por las alertas automáticas. Los datos históricos se conservan.
 
 ---
 
@@ -411,6 +464,9 @@ Las alertas no se repiten hasta que cambie el estado del activo.
 | `/buscar <texto>` | Buscar tickers por nombre | Registrado |
 | `/sizing <TICKER> [STOP_LOSS]` | Position sizing con comisiones | Registrado |
 | `/backtest [período]` | Backtest de estrategias | Registrado |
+| `/estrategia <cesta> [estrategia]` | Ver o cambiar estrategia | Registrado / OWNER |
+| `/nuevacesta <nombre> <estrategia>` | Crear nueva cesta | Registrado |
+| `/eliminarcesta <nombre>` | Desactivar cesta | OWNER |
 | `/register <id> <user>` | Pre-registrar usuario | OWNER |
 | `/adduser <@user> <ROL> <cesta>` | Añadir usuario a cesta | OWNER |
 | `/watchlist` | Ver watchlist personal | OWNER |

@@ -42,6 +42,12 @@ COMMAND_LIST = [
     ("__header__", "", "📐 *Sizing*"),
     ("sizing", "TICKER [stop\\_loss]", "Position sizing con comisiones del broker"),
 
+    # --- Cestas (gestión) ---
+    ("__header__", "", "🗂 *Gestión de cestas*"),
+    ("estrategia", "cesta [nueva]", "Ver o cambiar estrategia de una cesta (OWNER)"),
+    ("nuevacesta", "nombre estrategia", "Crear nueva cesta (cualquier usuario)"),
+    ("eliminarcesta", "nombre", "Desactivar cesta sin posiciones (OWNER)"),
+
     # --- Admin ---
     ("__header__", "", "🛠 *Admin*"),
     ("register", "tg\\_id username", "Pre-registrar usuario (OWNER)"),
