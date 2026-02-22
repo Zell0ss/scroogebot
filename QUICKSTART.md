@@ -1,6 +1,6 @@
 # Quick Start: ScroogeBot
 
-Get a working bot from the repo in ~10 minutes.
+Get a working bot from the repo in ~10 minutes, then optionally deploy it as a production service.
 
 **Prerequisites**: Python 3.11+, MariaDB/MySQL, a Telegram bot token from [@BotFather](https://t.me/BotFather).
 
@@ -81,15 +81,113 @@ Subsequent users can be added via `/register <tg_id> <username>` from any regist
 ## 5. First trade
 
 ```
-/start          → confirms registration
-/sel Cesta Agresiva   → select a basket as active context
-/compra AAPL 3  → paper-buy 3 shares of AAPL
-/cartera        → see open positions
+/start               → confirms registration
+/sel Cesta Agresiva  → select a basket as active context
+/compra AAPL 3       → paper-buy 3 shares of AAPL
+/cartera             → see open positions
 ```
 
 ---
 
-## Makefile shortcuts
+## 6. Production deployment (systemd)
+
+Use this when moving from `python scroogebot.py` to a Linux VPS or home server that starts automatically on boot and restarts on crash.
+
+### 6.1 Prepare the production environment
+
+```bash
+# Create a dedicated system user (no login shell)
+sudo useradd -r -s /sbin/nologin scroogebot
+
+# Clone the repo to a stable location
+sudo git clone https://github.com/zell0ss/scroogebot.git /opt/scroogebot
+sudo chown -R scroogebot:scroogebot /opt/scroogebot
+
+# Install dependencies
+sudo -u scroogebot python3.11 -m venv /opt/scroogebot/.venv
+sudo -u scroogebot /opt/scroogebot/.venv/bin/pip install -e "/opt/scroogebot[dev]"
+```
+
+### 6.2 Configure secrets
+
+```bash
+sudo cp /opt/scroogebot/.env.example /opt/scroogebot/.env
+sudo nano /opt/scroogebot/.env          # fill in TELEGRAM_APIKEY and DB credentials
+sudo chown scroogebot:scroogebot /opt/scroogebot/.env
+sudo chmod 600 /opt/scroogebot/.env     # readable only by the service user
+```
+
+### 6.3 Run migrations
+
+```bash
+sudo -u scroogebot /opt/scroogebot/.venv/bin/alembic upgrade head
+sudo -u scroogebot /opt/scroogebot/.venv/bin/python -c \
+  "import asyncio; from src.db.seed import seed; asyncio.run(seed())"
+```
+
+### 6.4 Create the systemd unit
+
+```bash
+sudo nano /etc/systemd/system/scroogebot.service
+```
+
+Paste:
+
+```ini
+[Unit]
+Description=ScroogeBot Telegram Investment Bot
+After=network.target mariadb.service
+Wants=mariadb.service
+
+[Service]
+Type=simple
+User=scroogebot
+Group=scroogebot
+WorkingDirectory=/opt/scroogebot
+EnvironmentFile=/opt/scroogebot/.env
+ExecStart=/opt/scroogebot/.venv/bin/python scroogebot.py
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scroogebot
+
+[Install]
+WantedBy=multi-user.target
+```
+
+> `WorkingDirectory` is required — `config/config.yaml` and Alembic resolve paths relative to CWD.
+
+### 6.5 Enable and start
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable scroogebot
+sudo systemctl start scroogebot
+sudo systemctl status scroogebot
+```
+
+### 6.6 View logs
+
+```bash
+sudo journalctl -u scroogebot -f       # live tail
+sudo journalctl -u scroogebot -n 50    # last 50 lines
+```
+
+### 6.7 Updating
+
+```bash
+cd /opt/scroogebot
+sudo -u scroogebot git pull
+sudo -u scroogebot .venv/bin/pip install -e .
+sudo -u scroogebot .venv/bin/alembic upgrade head
+sudo systemctl restart scroogebot
+sudo systemctl status scroogebot
+```
+
+---
+
+## Makefile shortcuts (dev)
 
 ```bash
 make run        # start the bot
@@ -111,9 +209,25 @@ make logs       # tail scroogebot.log
 sudo mysql -e "GRANT ALL ON scroogebot.* TO 'scroogebot'@'localhost'; FLUSH PRIVILEGES;"
 ```
 
+**`alembic upgrade head` fails** — ensure `DATABASE_URL_SYNC` is set in `.env` (Alembic uses the sync driver).
+
 **Bot doesn't respond** — wrong or expired token; generate a new one with BotFather and update `.env`.
 
-**`alembic upgrade head` fails** — ensure `DATABASE_URL_SYNC` is set in `.env` (Alembic uses the sync driver).
+**`Service failed to start` (systemd)** — inspect logs:
+```bash
+sudo journalctl -u scroogebot -n 30
+# Look for ImportError, connection refused, or missing .env variable
+```
+
+**`ModuleNotFoundError` in systemd but works manually** — confirm `ExecStart` points to the venv Python: `/opt/scroogebot/.venv/bin/python`.
+
+**DB connection refused (systemd)** — check MariaDB is running:
+```bash
+sudo systemctl status mariadb
+sudo systemctl start mariadb    # if stopped
+```
+
+**Bot stops responding after a few hours** — Telegram network timeout kills long-polling. `Restart=on-failure` in the service file handles this automatically; confirm it is set and `RestartSec` is not `0`.
 
 ---
 
