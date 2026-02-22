@@ -19,17 +19,26 @@ python scroogebot.py
 - `/valoracion` `/cartera` `/historial` — portfolio valuation, positions, order history
 - `/analiza <TICKER>` — RSI(14), SMA20/50, trend, 1-day change
 - `/compra` `/vende` — paper-buy and paper-sell at live market price
-- `/cestas` `/cesta` — list and inspect shared baskets
-- `/start` `/adduser` `/watchlist` — user registration, OWNER/MEMBER roles, watchlist
-- **Automatic alerts** — APScheduler scans positions every 5 min, sends inline keyboard (✅ Ejecutar / ❌ Rechazar) to all basket members when a strategy triggers
+- `/cestas` `/cesta` `/nuevacesta` `/eliminarcesta` — list, inspect, create, and remove baskets
+- `/backtest [período]` — historical strategy simulation (vectorbt)
+- `/montecarlo <cesta>` — Monte Carlo simulator: percentile returns, VaR, CVaR, Sharpe
+- `/sizing <TICKER>` — position sizing with ATR-based stop and risk budget
+- `/estrategia <cesta>` — view or change strategy + per-basket stop-loss %
+- `/start` `/adduser` `/watchlist` `/buscar` — registration, roles, watchlist, ticker search
+- **Automatic alerts** — APScheduler scans positions every 5 min; stop-loss layer applied on top of any strategy; inline keyboard (✅ Ejecutar / ❌ Rechazar) sent to all basket members
 
 ## Documentation
 
+- 📖 [User Manual](USER_MANUAL.md) — all commands with examples (Spanish)
+- 🇪🇸 [Guía de inicio](GUIA_INICIO.md) — crash course de inversión con el bot (Spanish)
+- 🚀 [Quick Start](QUICKSTART.md) — get a working bot from the repo in ~10 minutes
 - 📐 [Architecture](ARCHITECTURE.md) — design decisions, data flow, component overview
-- 🚀 [Quick Start](QUICKSTART.md) — step-by-step first-run tutorial
-- 🤖 [Briefing](BRIEFING.md) — full context for Claude-to-Claude handoff
-- 🛠️ [How-to guides](docs/) — add strategies, deploy as service
 - 📋 [Changelog](CHANGELOG.md) — version history
+
+## Video guides
+
+- 🎬 [Estrategias de ScroogeBot](docs/video/Estrategias_de_ScroogeBot.mp4) — overview of the 5 built-in strategies
+- 🎬 [Guía para invertir en España](docs/video/Guía_para_invertir_en_España.mp4) — investing basics for Spanish-speaking users
 
 ## Requirements
 
