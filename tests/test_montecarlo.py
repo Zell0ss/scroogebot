@@ -131,3 +131,58 @@ def test_run_asset_integration():
     assert 0.0 <= result.prob_loss <= 1.0
     assert result.var_95 <= result.return_median  # VaR is always <= median
     assert result.cvar_95 <= result.var_95        # CVaR <= VaR by definition
+
+
+from src.bot.handlers.montecarlo import _parse_args, MonteCarloFormatter
+
+
+def test_parse_args_name_only():
+    name, n, h = _parse_args(["Cesta", "Agresiva"])
+    assert name == "Cesta Agresiva"
+    assert n == 100
+    assert h == 90
+
+
+def test_parse_args_with_n_sims():
+    name, n, h = _parse_args(["Cesta", "Agresiva", "200"])
+    assert name == "Cesta Agresiva"
+    assert n == 200
+    assert h == 90
+
+
+def test_parse_args_with_n_and_horizon():
+    name, n, h = _parse_args(["Cesta", "Agresiva", "200", "180"])
+    assert name == "Cesta Agresiva"
+    assert n == 200
+    assert h == 180
+
+
+def test_parse_args_caps_n_sims_at_500():
+    name, n, h = _parse_args(["Cesta", "Agresiva", "9999"])
+    assert n == 500
+
+
+def test_parse_args_caps_horizon_at_365():
+    name, n, h = _parse_args(["Cesta", "Agresiva", "100", "9999"])
+    assert h == 365
+
+
+def test_formatter_contains_ticker():
+    fmt = MonteCarloFormatter()
+    r = _make_result(ticker="AAPL")
+    text = fmt.format_asset(r)
+    assert "AAPL" in text
+
+
+def test_formatter_contains_return_median():
+    fmt = MonteCarloFormatter()
+    r = _make_result(return_median=7.3)
+    text = fmt.format_asset(r)
+    assert "7.3" in text
+
+
+def test_formatter_contains_profile():
+    fmt = MonteCarloFormatter()
+    r = _make_result(prob_loss=0.10, sharpe_median=0.9)
+    text = fmt.format_asset(r)
+    assert any(kw in text for kw in ["favorable", "moderado", "desfavorable"])
