@@ -1,5 +1,13 @@
 # ScroogeBot — Claude Project Memory
 
+## Working with the User
+
+**El usuario tiene conocimientos técnicos (Python, backend) pero poca experiencia en finanzas e inversión.**
+
+- Si pide algo que financieramente no tiene sentido (p.ej. una métrica mal aplicada, una estrategia incoherente con el objetivo de la cesta, un parámetro absurdo), **discutirlo antes de implementar**, no hacer lo que se pide sin más.
+- Explicar conceptos financieros cuando sean relevantes (Sharpe, alpha, drawdown, etc.) de forma breve y en español.
+- Si hay una forma mejor o más estándar de hacer lo que pide, proponerla como alternativa.
+
 ## Project Overview
 
 ScroogeBot ("TioGilito") is a Telegram investment bot for shared paper-trading baskets with automatic strategy alerts.

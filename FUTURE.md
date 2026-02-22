@@ -177,6 +177,45 @@ estrategias con muchas operaciones.
 
 ---
 
+## Gestión de cestas desactivadas
+
+Las cestas eliminadas con `/eliminarcesta` se marcan `active=False` y su nombre
+queda renombrado a `{nombre}#{id_hex}` (ej. `Mi_Ahorro_jmc#b`) para liberar el
+nombre original. Los registros permanecen en la BD con todo su historial de
+órdenes intacto.
+
+Ideas para un futuro panel de administración:
+
+- **`/cestas_archivadas`** — listar cestas con `active=False` (solo OWNER global).
+- **Borrado definitivo** — eliminar físicamente una cesta archivada y en cascada
+  sus órdenes, posiciones, alertas y membresías. Requiere confirmación de doble
+  paso para evitar accidentes.
+- **Restaurar cesta** — reactivar una cesta archivada (deshacer el renombrado y
+  volver a poner `active=True`), útil si el usuario se arrepiente.
+- **Métricas de archivo** — exponer en Prometheus el número de cestas activas vs
+  archivadas.
+
+---
+
+## Backtest: separar warmup del periodo de evaluación
+
+Actualmente `BacktestEngine` usa un warmup fijo de 60 barras dentro del periodo
+solicitado (e.g., `/backtest 1y` evalúa solo ~9 meses). La solución es pedir
+datos extra al proveedor para que el warmup no consuma el periodo del usuario:
+
+```python
+# En engine.run():
+ohlcv = data.get_historical(ticker, period=_extend_period(period, warmup=60), ...)
+# Recortar los primeros `warmup` bars para los cálculos de rentabilidad
+eval_start = close.index[window]
+```
+
+Aplica también a `MonteCarloEngine` (usa `HIST_PERIOD = "2y"`, afecta menos).
+La función `_extend_period("1y", warmup=60)` necesitaría mapearse a `"15mo"` o
+similar, o usar fechas explícitas con `yfinance.download(start=..., end=...)`.
+
+---
+
 ## Long-term ideas
 
 - **Portfolio value chart**: log `scroogebot_portfolio_value_eur` every scan;
