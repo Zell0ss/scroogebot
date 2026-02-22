@@ -60,7 +60,12 @@ COMMAND_LIST = [
 
 
 def _build_help_text() -> str:
-    lines = ["🦆 *TioGilito — Comandos disponibles*", ""]
+    lines = [
+        "🦆 *TioGilito — Comandos disponibles*",
+        "",
+        "📖 ¿Primera vez? → [Guía de inicio](https://github.com/Zell0ss/scroogebot/blob/main/GUIA_INICIO.md)",
+        "",
+    ]
     for cmd, args, desc in COMMAND_LIST:
         if cmd == "__header__":
             lines += ["", desc]
