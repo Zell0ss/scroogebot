@@ -282,6 +282,25 @@ async def test_eliminarcesta_with_positions():
     assert "posiciones" in reply.lower()
 
 
+@pytest.mark.asyncio
+async def test_nuevacesta_underscores_not_mangled_by_markdown():
+    """Basket names with underscores must survive Markdown rendering intact."""
+    caller = MagicMock(id=1)
+    session = _make_session(_exec(caller), _exec(None))
+    session.flush = AsyncMock()
+    session.add = MagicMock()
+
+    update = _make_update()
+    ctx = _make_context(["Mi_Ahorro_jmc", "stop_loss"])
+
+    with patch("src.bot.handlers.admin.async_session_factory", return_value=_wrap(session)):
+        await cmd_nuevacesta(update, ctx)
+
+    reply = update.message.reply_text.call_args[0][0]
+    # Name must appear escaped or in backticks — plain underscores cause Markdown italics
+    assert "`Mi_Ahorro_jmc`" in reply or "Mi\\_Ahorro\\_jmc" in reply
+
+
 # ---------------------------------------------------------------------------
 # /eliminarcesta — blocked for non-OWNER
 # ---------------------------------------------------------------------------

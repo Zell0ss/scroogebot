@@ -387,7 +387,7 @@ async def cmd_nuevacesta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await session.commit()
 
     await update.message.reply_text(
-        f'✅ Cesta "{basket_name}" creada con estrategia `{strategy}` y €10.000 de capital inicial. Eres OWNER.',
+        f'✅ Cesta `{basket_name}` creada con estrategia `{strategy}` y €10.000 de capital inicial. Eres OWNER.',
         parse_mode="Markdown",
     )
 
