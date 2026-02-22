@@ -67,3 +67,160 @@ baskets:
         name: "SPDR Gold Shares"
         market: NYSE
         currency: USD
+
+  # ── Cestas modelo ── one per strategy, shared universe, for benchmarking ──
+
+  - name: "Modelo StopLoss"
+    broker: paper
+    strategy: stop_loss
+    risk_profile: moderate
+    cash: 10000.0
+    assets:
+      - ticker: AAPL
+        name: "Apple Inc"
+        market: NYSE
+        currency: USD
+      - ticker: MSFT
+        name: "Microsoft Corp"
+        market: NYSE
+        currency: USD
+      - ticker: NVDA
+        name: "NVIDIA Corp"
+        market: NYSE
+        currency: USD
+      - ticker: "SAN.MC"
+        name: "Banco Santander"
+        market: IBEX
+        currency: EUR
+      - ticker: "IBE.MC"
+        name: "Iberdrola"
+        market: IBEX
+        currency: EUR
+      - ticker: GLD
+        name: "SPDR Gold Shares"
+        market: NYSE
+        currency: USD
+
+  - name: "Modelo MA Crossover"
+    broker: paper
+    strategy: ma_crossover
+    risk_profile: moderate
+    cash: 10000.0
+    assets:
+      - ticker: AAPL
+        name: "Apple Inc"
+        market: NYSE
+        currency: USD
+      - ticker: MSFT
+        name: "Microsoft Corp"
+        market: NYSE
+        currency: USD
+      - ticker: NVDA
+        name: "NVIDIA Corp"
+        market: NYSE
+        currency: USD
+      - ticker: "SAN.MC"
+        name: "Banco Santander"
+        market: IBEX
+        currency: EUR
+      - ticker: "IBE.MC"
+        name: "Iberdrola"
+        market: IBEX
+        currency: EUR
+      - ticker: GLD
+        name: "SPDR Gold Shares"
+        market: NYSE
+        currency: USD
+
+  - name: "Modelo RSI"
+    broker: paper
+    strategy: rsi
+    risk_profile: moderate
+    cash: 10000.0
+    assets:
+      - ticker: AAPL
+        name: "Apple Inc"
+        market: NYSE
+        currency: USD
+      - ticker: MSFT
+        name: "Microsoft Corp"
+        market: NYSE
+        currency: USD
+      - ticker: NVDA
+        name: "NVIDIA Corp"
+        market: NYSE
+        currency: USD
+      - ticker: "SAN.MC"
+        name: "Banco Santander"
+        market: IBEX
+        currency: EUR
+      - ticker: "IBE.MC"
+        name: "Iberdrola"
+        market: IBEX
+        currency: EUR
+      - ticker: GLD
+        name: "SPDR Gold Shares"
+        market: NYSE
+        currency: USD
+
+  - name: "Modelo Bollinger"
+    broker: paper
+    strategy: bollinger
+    risk_profile: moderate
+    cash: 10000.0
+    assets:
+      - ticker: AAPL
+        name: "Apple Inc"
+        market: NYSE
+        currency: USD
+      - ticker: MSFT
+        name: "Microsoft Corp"
+        market: NYSE
+        currency: USD
+      - ticker: NVDA
+        name: "NVIDIA Corp"
+        market: NYSE
+        currency: USD
+      - ticker: "SAN.MC"
+        name: "Banco Santander"
+        market: IBEX
+        currency: EUR
+      - ticker: "IBE.MC"
+        name: "Iberdrola"
+        market: IBEX
+        currency: EUR
+      - ticker: GLD
+        name: "SPDR Gold Shares"
+        market: NYSE
+        currency: USD
+
+  - name: "Modelo SafeHaven"
+    broker: paper
+    strategy: safe_haven
+    risk_profile: moderate
+    cash: 10000.0
+    assets:
+      - ticker: AAPL
+        name: "Apple Inc"
+        market: NYSE
+        currency: USD
+      - ticker: MSFT
+        name: "Microsoft Corp"
+        market: NYSE
+        currency: USD
+      - ticker: NVDA
+        name: "NVIDIA Corp"
+        market: NYSE
+        currency: USD
+      - ticker: "SAN.MC"
+        name: "Banco Santander"
+        market: IBEX
+        currency: EUR
+      - ticker: "IBE.MC"
+        name: "Iberdrola"
+        market: IBEX
+        currency: EUR
+      - ticker: GLD
+        name: "SPDR Gold Shares"
+        market: NYSE
+        currency: USD
