@@ -14,10 +14,17 @@ graph TD
     BOT -->|read/write| DB[(MariaDB)]
     BOT -->|price fetch| YF[Yahoo Finance]
 
+    BOT -->|/backtest| BE[BacktestEngine\nvectorbt]
+    BOT -->|/montecarlo| MC[MonteCarloAnalyzer\nvectorbt]
+    BE & MC -->|OHLCV 1-2y| YF
+
     SCHED[APScheduler\n5-min tick] -->|scan_all_baskets| AE[AlertEngine]
+    AE -->|market hours guard| MH[MarketHoursChecker]
     AE -->|price + OHLCV| YF
-    AE -->|evaluate| ST{Strategy\nStopLoss / MACrossover}
-    ST -->|Signal BUY/SELL| AE
+    AE -->|evaluate| ST{Strategy\nRSI / MA / Bollinger\nSafeHaven / StopLoss}
+    ST -->|Signal BUY/SELL/None| AE
+    AE -->|stop_loss_pct layer| SL[Position-based\nstop-loss check]
+    SL -->|override to SELL| AE
     AE -->|flush + notify| DB
     AE -->|InlineKeyboard| TG
 
@@ -121,6 +128,7 @@ graph TD
 2. **Basket list**: short-lived session fetches active baskets, session closes.
 3. **Per-basket scan**: new session opens; positions with `quantity > 0` fetched with Asset join.
 4. **Strategy evaluation**: `YahooDataProvider.get_current_price()` + `get_historical(period="3mo", interval="1d")` → `strategy.evaluate(ticker, df, price)` → `Signal | None`.
+4b. **Stop-loss layer**: if `basket.stop_loss_pct` is set and position is down ≥ threshold from `pos.avg_price`, signal is overridden to SELL (independent of strategy result).
 5. **Deduplication**: skip if a PENDING Alert already exists for `(basket_id, asset_id)`.
 6. **Flush**: new Alert rows inserted and flushed (IDs assigned, not committed).
 7. **Notify**: `_notify()` queries BasketMember+User, builds Markdown message, sends InlineKeyboard to each `user.tg_id`.
@@ -154,13 +162,15 @@ graph TD
 
 ### `src/alerts/engine.py` — AlertEngine
 
-**Responsibility**: Scans positions against strategies on a schedule; creates Alert rows; notifies basket members via Telegram inline keyboard.
+**Responsibility**: Scans positions against strategies on a schedule; applies independent stop-loss layer; creates Alert rows; notifies basket members via Telegram inline keyboard.
 
 **Inputs**: Active baskets + positions (DB), live price + OHLCV (Yahoo Finance)
 
 **Outputs**: Alert rows in DB, Telegram messages with InlineKeyboard
 
 **Dependencies**: YahooDataProvider, Strategy implementations, async_session_factory, Telegram app
+
+**Stop-loss layer**: after `strategy.evaluate()`, if `basket.stop_loss_pct` is set and `(current_price - pos.avg_price) / pos.avg_price ≤ -threshold`, the signal is overridden to SELL regardless of what the strategy returned. Uses `pos.avg_price` (real entry price) not period-open.
 
 ---
 
@@ -171,10 +181,15 @@ graph TD
 **Interface**: `Strategy.evaluate(ticker, data: pd.DataFrame, current_price: Decimal) → Signal | None`
 
 **Current implementations**:
-- `StopLossStrategy`: SELL if change from period-open ≥ `stop_loss_pct` (down) or ≥ `take_profit_pct` (up)
-- `MACrossoverStrategy`: BUY on fast-MA crossing above slow-MA; SELL on crossing below
+- `StopLossStrategy`: exit-only, always-invested mode — used in backtest/montecarlo as a baseline; in AlertEngine generates SELL when price falls below a rolling low (uses period-open, not avg_price)
+- `MACrossoverStrategy`: BUY on fast-MA (20d) crossing above slow-MA (50d); SELL on crossing below
+- `RSIStrategy`: BUY when RSI(14) < 30 (oversold); SELL when RSI(14) > 70 (overbought)
+- `BollingerStrategy`: BUY when price touches lower band; SELL when price touches upper band
+- `SafeHavenStrategy`: SELL if drawdown from 52w high exceeds threshold (capital preservation)
 
-**Adding a new strategy**: one file + one line in `STRATEGY_MAP` (see `docs/HOW-TO-ADD-STRATEGY.md`)
+**Independent stop-loss layer (not a strategy)**: `Basket.stop_loss_pct` configures a position-based safety floor that AlertEngine applies *on top of any strategy* using `Position.avg_price` as the reference price. This overrides even a BUY signal. Set per basket via `/estrategia` or `/nuevacesta`.
+
+**Adding a new strategy**: one file + one line in `STRATEGY_MAP` in `alerts/engine.py`, `backtest/engine.py`, `backtest/montecarlo.py`, and each handler.
 
 ---
 
@@ -205,18 +220,59 @@ graph TD
 
 ---
 
+### `src/backtest/engine.py` — BacktestEngine
+
+**Responsibility**: Run a historical simulation of a strategy on a single ticker using vectorbt.
+
+**Signature**: `run(ticker, strategy, strategy_name, period, stop_loss_pct=None) → BacktestResult`
+
+**Inputs**: Ticker symbol, Strategy instance, period string (`1y`, `2y`, …), optional stop_loss_pct
+
+**Outputs**: `BacktestResult(total_return_pct, benchmark_return_pct, sharpe_ratio, max_drawdown_pct, n_trades, win_rate_pct)`
+
+**Notes**: Uses `asyncio.run_in_executor` from handler (yfinance + vectorbt are synchronous). Passes `sl_stop=stop_loss_pct/100` to vectorbt when configured. For exit-only strategies (StopLoss), uses `_make_entries_for_exit_only` to always-invest: enter at warmup bar, re-enter day after each exit.
+
+---
+
+### `src/backtest/montecarlo.py` — MonteCarloAnalyzer
+
+**Responsibility**: Bootstrap-resample historical returns to generate N simulated price paths; run strategy on each; aggregate statistics.
+
+**Signature**: `run_asset(ticker, strategy, strategy_name, hist_df, n_sims, horizon, rng, seed, stop_loss_pct=None) → AssetMonteCarloResult`
+
+**Inputs**: Historical OHLCV DataFrame (2y), number of simulations (max 500), horizon days (max 365), seeded RNG
+
+**Outputs**: `AssetMonteCarloResult` with percentile returns, VaR/CVaR, max drawdown, Sharpe, win rate, and profile label
+
+**Notes**: Paths are built by sampling daily returns with replacement (stationary distribution assumption). Correlations between assets are not modelled — stated in footer warning.
+
+---
+
+### `src/sizing/engine.py` — SizingEngine
+
+**Responsibility**: Calculate position size given a risk budget, stop-loss level, and broker commission model.
+
+**Inputs**: Ticker, stop-loss price (manual or ATR×2), capital (from active basket cash), broker commission config
+
+**Outputs**: Number of shares, nominal position, risk amount, commission estimate, limiting factor (risk vs max-position)
+
+**Notes**: Handles USD→EUR conversion via `YahooDataProvider.get_fx_rate`. Max risk = 0.75% of capital; max position = 20% of capital.
+
+---
+
 ### `src/db/models.py` — ORM Models
 
-**9 tables**:
+**10 tables**:
 
 | Table | Key columns | Purpose |
 |-------|-------------|---------|
-| `users` | tg_id, username, first_name | Telegram user registry |
-| `baskets` | name, strategy, risk_profile, cash | Shared investment basket |
+| `users` | tg_id, username, first_name, **active_basket_id** | Telegram user registry; active_basket_id persists `/sel` selection |
+| `baskets` | name, strategy, risk_profile, cash, broker, **stop_loss_pct** | Shared investment basket; stop_loss_pct = optional position risk floor |
 | `basket_members` | basket_id, user_id, role | OWNER/MEMBER access control |
 | `assets` | ticker, market | Tracked instruments |
-| `basket_assets` | basket_id, asset_id, active | Which assets belong to which basket |
+| `basket_assets` | basket_id, asset_id, active | Which assets belong to which basket (model baskets); personal baskets use positions |
 | `positions` | basket_id, asset_id, quantity, avg_price | Current holdings |
 | `orders` | basket_id, asset_id, user_id, side, qty, price, triggered_by | Trade history |
 | `alerts` | basket_id, asset_id, strategy, signal, status, reason | Strategy alert lifecycle |
 | `watchlist` | ticker, name, note, status, added_by | Personal watchlist entries |
+| `command_logs` | tg_id, username, command, success | Audit trail for all bot commands |

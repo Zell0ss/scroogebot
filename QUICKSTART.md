@@ -1,20 +1,12 @@
 # Quick Start: ScroogeBot
 
-In this guide you'll set up ScroogeBot and send your first paper trade from Telegram.
+Get a working bot from the repo in ~10 minutes.
 
-**Estimated time**: 10 minutes
-
----
-
-## Prerequisites
-
-- Python 3.11+
-- MariaDB / MySQL running locally
-- A Telegram account + bot token (from [@BotFather](https://t.me/BotFather))
+**Prerequisites**: Python 3.11+, MariaDB/MySQL, a Telegram bot token from [@BotFather](https://t.me/BotFather).
 
 ---
 
-## Step 1: Install
+## 1. Install
 
 ```bash
 git clone https://github.com/zell0ss/scroogebot.git
@@ -24,37 +16,31 @@ source .venv/bin/activate    # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 ```
 
-**Expected output**:
-```
-Successfully installed scroogebot-0.1.0 ...
-```
-
 ---
 
-## Step 2: Configure
+## 2. Configure
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` and fill in:
+Edit `.env`:
 
 ```env
-TELEGRAM_APIKEY=1234567890:ABCdef...   # from BotFather /newbot
+TELEGRAM_APIKEY=1234567890:ABCdef...
 DATABASE_URL=mysql+aiomysql://scroogebot:password@localhost/scroogebot
 DATABASE_URL_SYNC=mysql+pymysql://scroogebot:password@localhost/scroogebot
 ```
 
-Where to get each value:
-- `TELEGRAM_APIKEY`: open [@BotFather](https://t.me/BotFather) → `/newbot` → copy the token
-- `DATABASE_URL` / `DATABASE_URL_SYNC`: your MariaDB host, user, password, database name
+- `TELEGRAM_APIKEY`: [@BotFather](https://t.me/BotFather) → `/newbot` → copy token
+- `DATABASE_URL*`: your MariaDB host, user, password, DB name
 
 ---
 
-## Step 3: Database setup
+## 3. Database
 
 ```bash
-# Create the database and user (adjust password)
+# Create DB and user (requires sudo mysql access)
 sudo mysql -e "
   CREATE DATABASE scroogebot CHARACTER SET utf8mb4;
   CREATE USER 'scroogebot'@'localhost' IDENTIFIED BY 'password';
@@ -62,100 +48,77 @@ sudo mysql -e "
   FLUSH PRIVILEGES;
 "
 
-# Run migrations (creates all 9 tables)
-alembic upgrade head
+# Run all migrations (creates all 10 tables)
+.venv/bin/alembic upgrade head
 
-# Seed baskets and assets from config/config.yaml
-python -c "import asyncio; from src.db.seed import seed; asyncio.run(seed())"
-```
-
-**Expected output**:
-```
-INFO  [alembic.runtime.migration] Running upgrade  -> 2df3a1ef5417, initial schema
-Seeded basket: Cesta Agresiva
-Seeded basket: Cesta Conservadora
-Seeded 6 assets.
+# Seed model baskets + assets from config/config.yaml
+make seed
+# or: .venv/bin/python -c "import asyncio; from src.db.seed import seed; asyncio.run(seed())"
 ```
 
 ---
 
-## Step 4: Run the bot
+## 4. Register yourself
+
+The bot requires users to be pre-registered. Start the bot first:
 
 ```bash
-python scroogebot.py
+make run
+# or: .venv/bin/python scroogebot.py
 ```
 
-**Expected output**:
-```
-INFO  scroogebot - ScroogeBot starting — scanning every 5min
+Send `/start` in Telegram — the bot will show your **Telegram ID**. Then register from the bot (if you're the first user, you need to insert directly):
+
+```bash
+# Direct DB insert for the first admin user (replace with your actual tg_id and username)
+sudo mysql scroogebot -e "INSERT INTO users (tg_id, username, first_name) VALUES (123456789, 'yourusername', 'YourName');"
 ```
 
-Now open your Telegram bot and send:
+Subsequent users can be added via `/register <tg_id> <username>` from any registered user.
+
+---
+
+## 5. First trade
 
 ```
-/start
-```
-
-**Expected response**:
-```
-¡Hola [YourName]! 🦆 Soy TioGilito.
-Usa /valoracion para ver el estado de tus cestas.
-Usa /cestas para ver las cestas disponibles.
+/start          → confirms registration
+/sel Cesta Agresiva   → select a basket as active context
+/compra AAPL 3  → paper-buy 3 shares of AAPL
+/cartera        → see open positions
 ```
 
 ---
 
-## Step 5: Your first paper trade
+## Makefile shortcuts
 
+```bash
+make run        # start the bot
+make seed       # (re)seed model baskets from config.yaml
+make migrate    # alembic upgrade head
+make test       # run full test suite
+make test-v     # verbose tests
+make logs       # tail scroogebot.log
 ```
-/analiza AAPL
-```
-→ Shows RSI, SMA trend, 1-day change for Apple.
-
-```
-/compra AAPL 3
-```
-→ Paper-buys 3 shares of AAPL at the live market price.
-
-```
-/cartera
-```
-→ Shows your open positions.
-
----
-
-## Next steps
-
-- 📐 [Architecture](ARCHITECTURE.md) — understand how AlertEngine and strategies work
-- 🤖 [Briefing](BRIEFING.md) — full technical context
-- 🛠️ [Add a custom strategy](docs/HOW-TO-ADD-STRATEGY.md)
-- 🚀 [Deploy as a service](docs/HOW-TO-DEPLOY.md)
-- ⚙️ Edit `config/config.yaml` to change baskets, assets, or strategy parameters
 
 ---
 
 ## Troubleshooting
 
-### Problem: `ModuleNotFoundError: No module named 'src'`
+**`ModuleNotFoundError: No module named 'src'`** — run `pip install -e .` from the repo root.
 
-**Cause**: Not installed in editable mode or wrong directory.
-
-**Solution**:
-```bash
-pip install -e .
-```
-
-### Problem: `Access denied for user` (DB error)
-
-**Cause**: DB user lacks privileges.
-
-**Solution**:
+**`Access denied for user`** — run:
 ```bash
 sudo mysql -e "GRANT ALL ON scroogebot.* TO 'scroogebot'@'localhost'; FLUSH PRIVILEGES;"
 ```
 
-### Problem: Bot doesn't respond
+**Bot doesn't respond** — wrong or expired token; generate a new one with BotFather and update `.env`.
 
-**Cause**: Wrong or expired Telegram token.
+**`alembic upgrade head` fails** — ensure `DATABASE_URL_SYNC` is set in `.env` (Alembic uses the sync driver).
 
-**Solution**: Create a new token with BotFather and update `.env`.
+---
+
+## Further reading
+
+- [USER_MANUAL.md](USER_MANUAL.md) — all commands with examples
+- [ARCHITECTURE.md](ARCHITECTURE.md) — design decisions, data flow, component reference
+- [GUIA_INICIO.md](GUIA_INICIO.md) — crash course in investing with the bot (Spanish)
