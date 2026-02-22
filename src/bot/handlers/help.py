@@ -27,6 +27,7 @@ COMMAND_LIST = [
     ("__header__", "", "🗂 *Cestas*"),
     ("cestas", "", "Listar cestas disponibles"),
     ("cesta", "nombre", "Detalle de una cesta"),
+    ("sel", "[nombre]", "Ver o cambiar cesta activa (el 'prompt' para órdenes)"),
 
     # --- Análisis ---
     ("__header__", "", "🔍 *Análisis*"),

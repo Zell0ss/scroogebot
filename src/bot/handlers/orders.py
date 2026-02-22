@@ -16,14 +16,28 @@ _provider = YahooDataProvider()
 _executor = PaperTradingExecutor()
 
 
-async def _get_or_create_user(session, tg_user) -> User:
-    result = await session.execute(select(User).where(User.tg_id == tg_user.id))
-    user = result.scalar_one_or_none()
-    if not user:
-        user = User(tg_id=tg_user.id, username=tg_user.username, first_name=tg_user.first_name)
-        session.add(user)
-        await session.flush()
-    return user
+def _parse_order_args(args: list[str]) -> tuple[str, Decimal | None, str | None]:
+    """Parse /compra or /vende args.
+
+    Returns (ticker, quantity, basket_override_name).
+    basket_override_name is set when args[2:] start with @.
+    quantity is None if parsing fails.
+    """
+    if len(args) < 2:
+        return "", None, None
+
+    ticker = args[0].upper()
+    try:
+        quantity = Decimal(args[1])
+    except InvalidOperation:
+        return ticker, None, None
+
+    basket_override = None
+    if len(args) > 2 and args[2].startswith("@"):
+        parts = [args[2].lstrip("@")] + list(args[3:])
+        basket_override = " ".join(parts)
+
+    return ticker, quantity, basket_override
 
 
 async def _handle_order(update: Update, context, order_type: str) -> None:
@@ -31,12 +45,17 @@ async def _handle_order(update: Update, context, order_type: str) -> None:
     raw_args = " ".join(context.args) if context.args else ""
 
     if len(context.args) < 2:
-        await update.message.reply_text(f"Uso: /{order_type.lower()} TICKER cantidad")
+        await update.message.reply_text(
+            f"Uso: `{cmd} TICKER cantidad [@cesta]`\n"
+            "Ejemplo: `/compra AAPL 10` — usa la cesta activa\n"
+            "Ejemplo: `/compra AAPL 10 @Cesta Agresiva` — override puntual",
+            parse_mode="Markdown",
+        )
         return
-    ticker = context.args[0].upper()
-    try:
-        quantity = Decimal(context.args[1])
-    except InvalidOperation:
+
+    ticker, quantity, basket_override = _parse_order_args(list(context.args))
+
+    if quantity is None:
         await update.message.reply_text("Cantidad inválida.")
         return
     if quantity <= 0:
@@ -52,6 +71,11 @@ async def _handle_order(update: Update, context, order_type: str) -> None:
         return
 
     async with async_session_factory() as session:
+        # Resolve caller
+        caller_result = await session.execute(select(User).where(User.tg_id == update.effective_user.id))
+        caller = caller_result.scalar_one_or_none()
+
+        # Resolve asset
         asset_result = await session.execute(select(Asset).where(Asset.ticker == ticker))
         asset = asset_result.scalar_one_or_none()
         if not asset:
@@ -60,22 +84,45 @@ async def _handle_order(update: Update, context, order_type: str) -> None:
             await log_command(update, cmd, False, err, raw_args)
             return
 
-        basket_result = await session.execute(select(Basket).where(Basket.active == True))
-        basket = basket_result.scalars().first()
-        if not basket:
-            err = "No hay cestas activas."
-            await update.message.reply_text(err)
-            await log_command(update, cmd, False, err, raw_args)
-            return
+        # Resolve basket
+        if basket_override:
+            basket_result = await session.execute(
+                select(Basket).where(Basket.name == basket_override, Basket.active == True)
+            )
+            basket = basket_result.scalar_one_or_none()
+            if not basket:
+                err = f"Cesta '@{basket_override}' no encontrada."
+                await update.message.reply_text(err)
+                await log_command(update, cmd, False, err, raw_args)
+                return
+        else:
+            if not caller or not caller.active_basket_id:
+                await update.message.reply_text(
+                    "🗂 Sin cesta activa. Usa `/sel <nombre>` para seleccionar una.",
+                    parse_mode="Markdown",
+                )
+                return
+            basket_result = await session.execute(
+                select(Basket).where(Basket.id == caller.active_basket_id, Basket.active == True)
+            )
+            basket = basket_result.scalar_one_or_none()
+            if not basket:
+                await update.message.reply_text(
+                    "🗂 La cesta seleccionada ya no está activa. Usa `/sel <nombre>` para elegir otra.",
+                    parse_mode="Markdown",
+                )
+                return
 
-        user = await _get_or_create_user(session, update.effective_user)
+        user_id = caller.id if caller else 0
         try:
             if order_type == "BUY":
-                await _executor.buy(session, basket.id, asset.id, user.id, ticker, quantity, price_obj.price)
+                await _executor.buy(session, basket.id, asset.id, user_id, ticker, quantity, price_obj.price)
             else:
-                await _executor.sell(session, basket.id, asset.id, user.id, ticker, quantity, price_obj.price)
+                await _executor.sell(session, basket.id, asset.id, user_id, ticker, quantity, price_obj.price)
+
             verb = "Compra" if order_type == "BUY" else "Venta"
             ok_msg = (
+                f"🗂 *{basket.name}*\n"
                 f"✅ *{verb} ejecutada*\n"
                 f"{quantity} {ticker} × {price_obj.price:.2f} {price_obj.currency}\n"
                 f"Total: {quantity * price_obj.price:.2f} {price_obj.currency}"

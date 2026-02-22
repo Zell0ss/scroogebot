@@ -199,29 +199,57 @@ Desactiva (soft-delete) una cesta. Solo el **OWNER** puede hacerlo, y únicament
 ## Órdenes
 
 > Las órdenes se ejecutan al precio de mercado actual (paper trading).
+> **Requieren tener una cesta activa seleccionada** con `/sel`.
 
-### `/compra <TICKER> <cantidad>`
+### `/sel [nombre_cesta]`
 
-Compra acciones de un activo que esté en alguna cesta activa.
+Selecciona la cesta sobre la que operarán `/compra` y `/vende`. Actúa como el "prompt" del bot: indica el contexto activo en todas las respuestas de órdenes.
 
 ```
-/compra AAPL 10
+/sel                    ← muestra la cesta actualmente seleccionada
+/sel Cesta Agresiva     ← selecciona "Cesta Agresiva" como activa
+```
+
+La selección se guarda en base de datos y persiste entre reinicios del bot.
+
+**Respuesta:**
+```
+🗂 Cesta activa: Cesta Agresiva
+```
+
+---
+
+### `/compra <TICKER> <cantidad> [@cesta]`
+
+Compra acciones usando la cesta activa. El argumento `@cesta` es un override puntual que no cambia la selección.
+
+```
+/compra AAPL 10                    ← usa cesta activa
 /compra MSFT 5.5
+/compra AAPL 10 @Cesta Agresiva    ← override sin cambiar /sel
+```
+
+**Respuesta:**
+```
+🗂 Cesta Agresiva
+✅ Compra ejecutada
+10 AAPL × 185.32 USD
+Total: 1.853,20 USD
 ```
 
 - La cantidad puede ser decimal.
 - El bot descuenta el importe del cash de la cesta.
-- Falla si no hay cash suficiente.
+- Falla si no hay cash suficiente o no hay cesta seleccionada.
 
 ---
 
-### `/vende <TICKER> <cantidad>`
+### `/vende <TICKER> <cantidad> [@cesta]`
 
-Vende acciones de un activo en cartera.
+Vende acciones de un activo usando la cesta activa (o override con `@cesta`).
 
 ```
 /vende AAPL 5
-/vende MSFT 2.5
+/vende MSFT 2.5 @Cesta Agresiva
 ```
 
 - Falla si no hay suficientes acciones en posición.
@@ -458,8 +486,9 @@ Las alertas no se repiten hasta que cambie el estado del activo.
 | `/historial` | Últimas 10 órdenes | Registrado |
 | `/cestas` | Lista de cestas activas | Registrado |
 | `/cesta <nombre>` | Detalle de una cesta | Registrado |
-| `/compra <TICKER> <qty>` | Comprar acciones | Registrado |
-| `/vende <TICKER> <qty>` | Vender acciones | Registrado |
+| `/sel [nombre]` | Ver o seleccionar cesta activa | Registrado |
+| `/compra <TICKER> <qty> [@cesta]` | Comprar acciones | Registrado |
+| `/vende <TICKER> <qty> [@cesta]` | Vender acciones | Registrado |
 | `/analiza <TICKER>` | Análisis técnico (RSI, SMA) | Registrado |
 | `/buscar <texto>` | Buscar tickers por nombre | Registrado |
 | `/sizing <TICKER> [STOP_LOSS]` | Position sizing con comisiones | Registrado |
