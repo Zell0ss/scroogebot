@@ -186,3 +186,72 @@ def test_formatter_contains_profile():
     r = _make_result(prob_loss=0.10, sharpe_median=0.9)
     text = fmt.format_asset(r)
     assert any(kw in text for kw in ["favorable", "moderado", "desfavorable"])
+
+
+# ---------------------------------------------------------------------------
+# MonteCarloAnalyzer.run_asset — sl_stop passed to vectorbt
+# ---------------------------------------------------------------------------
+
+from unittest.mock import MagicMock, patch
+
+
+def test_montecarlo_passes_sl_stop_to_vectorbt():
+    """When stop_loss_pct is provided, sl_stop=(pct/100) must be passed to vectorbt."""
+    hist_df = _make_hist_df(120)
+    rng = np.random.default_rng(42)
+    analyzer = MonteCarloAnalyzer()
+    captured_calls = []
+
+    def fake_from_signals(close, entries, exits, **kwargs):
+        captured_calls.append(kwargs)
+        pf = MagicMock()
+        pf.stats.return_value = {
+            "Total Return [%]": 5.0, "Sharpe Ratio": 1.0,
+            "Max Drawdown [%]": 5.0, "Win Rate [%]": 60.0,
+        }
+        return pf
+
+    strategy = MagicMock()
+    strategy.evaluate.return_value = None
+
+    with patch("vectorbt.Portfolio.from_signals", side_effect=fake_from_signals):
+        analyzer.run_asset(
+            ticker="TEST", strategy=strategy, strategy_name="rsi",
+            hist_df=hist_df, n_simulations=3, horizon=10,
+            rng=rng, seed=42, stop_loss_pct=10.0,
+        )
+
+    assert captured_calls, "vectorbt must have been called"
+    for call_kwargs in captured_calls:
+        assert "sl_stop" in call_kwargs, f"sl_stop missing in call: {call_kwargs}"
+        assert abs(call_kwargs["sl_stop"] - 0.10) < 1e-9
+
+
+def test_montecarlo_no_sl_stop_when_pct_is_none():
+    """When stop_loss_pct is None, sl_stop must NOT be passed to vectorbt."""
+    hist_df = _make_hist_df(120)
+    rng = np.random.default_rng(42)
+    analyzer = MonteCarloAnalyzer()
+    captured_calls = []
+
+    def fake_from_signals(close, entries, exits, **kwargs):
+        captured_calls.append(kwargs)
+        pf = MagicMock()
+        pf.stats.return_value = {
+            "Total Return [%]": 5.0, "Sharpe Ratio": 1.0,
+            "Max Drawdown [%]": 5.0, "Win Rate [%]": 60.0,
+        }
+        return pf
+
+    strategy = MagicMock()
+    strategy.evaluate.return_value = None
+
+    with patch("vectorbt.Portfolio.from_signals", side_effect=fake_from_signals):
+        analyzer.run_asset(
+            ticker="TEST", strategy=strategy, strategy_name="rsi",
+            hist_df=hist_df, n_simulations=3, horizon=10,
+            rng=rng, seed=42, stop_loss_pct=None,
+        )
+
+    for call_kwargs in captured_calls:
+        assert "sl_stop" not in call_kwargs, f"sl_stop must not be passed. Got: {call_kwargs}"

@@ -84,7 +84,7 @@ async def cmd_register(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 BasketMember.role == "OWNER",
             )
         )
-        if not owner_check.scalar_one_or_none():
+        if not owner_check.scalars().first():
             err = "Solo los OWNER pueden registrar usuarios."
             await update.message.reply_text(err)
             await log_command(update, "/register", False, err, raw_args)
@@ -126,7 +126,7 @@ async def cmd_adduser(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
     async with async_session_factory() as session:
         basket_result = await session.execute(
-            select(Basket).where(Basket.name == basket_name)
+            select(Basket).where(Basket.name == basket_name, Basket.active == True)
         )
         basket = basket_result.scalar_one_or_none()
         if not basket:
@@ -259,7 +259,7 @@ async def cmd_logs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 BasketMember.role == "OWNER",
             )
         )
-        if not owner_check.scalar_one_or_none():
+        if not owner_check.scalars().first():
             await update.message.reply_text("Solo los OWNER pueden ver los logs.")
             return
 
@@ -285,29 +285,32 @@ async def cmd_logs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def cmd_estrategia(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Usage: /estrategia <cesta> [nueva_estrategia]"""
+    """Usage: /estrategia <cesta> [estrategia] [stop_loss_%]"""
     if not update.message or not context.args:
         await update.message.reply_text(
-            f"Uso: /estrategia <cesta> [nueva\\_estrategia]\nDisponibles: {_STRATEGY_LIST}"
+            f"Uso: /estrategia <cesta> [nueva\\_estrategia] [stop_loss_%]\nDisponibles: {_STRATEGY_LIST}"
         )
         return
 
     parts = list(context.args)
-    # If last token is a known strategy, it's a change request
-    if parts[-1] in STRATEGY_MAP and len(parts) >= 2:
-        new_strategy: str | None = parts.pop()
-    elif parts[-1] not in STRATEGY_MAP and len(parts) >= 2:
-        # Last token looks like an intended strategy but is invalid
-        new_strategy = parts[-1]
-        if new_strategy not in STRATEGY_MAP:
-            await update.message.reply_text(
-                f"Estrategia '{new_strategy}' no válida. Disponibles: {_STRATEGY_LIST}"
-            )
-            return
-    else:
-        new_strategy = None
+    new_strategy: str | None = None
+    new_stop_loss: float | None = None  # None = not specified; 0 = disable
 
-    basket_name = " ".join(parts if new_strategy is not None else parts)
+    # Trailing numeric token → stop_loss_pct
+    if parts and parts[-1].replace(".", "", 1).isdigit():
+        new_stop_loss = float(parts.pop())
+
+    # Trailing strategy token (after optional numeric)
+    if len(parts) >= 2 and parts[-1] in STRATEGY_MAP:
+        new_strategy = parts.pop()
+    elif len(parts) >= 2 and parts[-1] not in STRATEGY_MAP:
+        await update.message.reply_text(
+            f"Estrategia '{parts[-1]}' no válida. Disponibles: {_STRATEGY_LIST}"
+        )
+        return
+
+    basket_name = " ".join(parts)
+    change_mode = new_strategy is not None or new_stop_loss is not None
 
     async with async_session_factory() as session:
         caller_result = await session.execute(select(User).where(User.tg_id == update.effective_user.id))
@@ -324,9 +327,14 @@ async def cmd_estrategia(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await update.message.reply_text(f"Cesta '{basket_name}' no encontrada.")
             return
 
-        if new_strategy is None:
+        if not change_mode:
+            sl_line = (
+                f"\nStop-loss: {basket.stop_loss_pct}% (desde precio de compra)"
+                if basket.stop_loss_pct
+                else "\nStop-loss: no configurado"
+            )
             await update.message.reply_text(
-                f"📊 `{basket_name}` usa estrategia: `{basket.strategy}`\n"
+                f"📊 `{basket_name}` usa estrategia: `{basket.strategy}`{sl_line}\n"
                 f"Disponibles: {_STRATEGY_LIST}",
                 parse_mode="Markdown",
             )
@@ -343,24 +351,49 @@ async def cmd_estrategia(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await update.message.reply_text("Solo el OWNER puede cambiar la estrategia.")
             return
 
-        basket.strategy = new_strategy
+        if new_strategy:
+            basket.strategy = new_strategy
+        if new_stop_loss is not None:
+            basket.stop_loss_pct = Decimal(str(new_stop_loss)) if new_stop_loss > 0 else None
+
         await session.commit()
+
+        changes = []
+        if new_strategy:
+            changes.append(f"estrategia `{new_strategy}`")
+        if new_stop_loss is not None:
+            if new_stop_loss > 0:
+                changes.append(f"stop-loss {new_stop_loss}%")
+            else:
+                changes.append("stop-loss desactivado")
         await update.message.reply_text(
-            f"✅ Estrategia de `{basket_name}` cambiada a `{new_strategy}`",
+            f"✅ `{basket_name}` actualizada: {', '.join(changes)}",
             parse_mode="Markdown",
         )
 
 
 async def cmd_nuevacesta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Usage: /nuevacesta <nombre> <estrategia>"""
+    """Usage: /nuevacesta <nombre> <estrategia> [stop_loss_%]"""
     if not update.message or not context.args or len(context.args) < 2:
         await update.message.reply_text(
-            f"Uso: /nuevacesta <nombre> <estrategia>\nDisponibles: {_STRATEGY_LIST}"
+            f"Uso: /nuevacesta <nombre> <estrategia> [stop_loss_%]\nDisponibles: {_STRATEGY_LIST}"
         )
         return
 
-    strategy = context.args[-1]
-    basket_name = " ".join(context.args[:-1])
+    parts = list(context.args)
+    stop_loss_pct: float | None = None
+
+    # Trailing numeric token → stop_loss_pct
+    if parts[-1].replace(".", "", 1).isdigit():
+        stop_loss_pct = float(parts.pop())
+        if len(parts) < 2:
+            await update.message.reply_text(
+                f"Uso: /nuevacesta <nombre> <estrategia> [stop_loss_%]\nDisponibles: {_STRATEGY_LIST}"
+            )
+            return
+
+    strategy = parts[-1]
+    basket_name = " ".join(parts[:-1])
 
     if strategy not in STRATEGY_MAP:
         await update.message.reply_text(
@@ -375,12 +408,15 @@ async def cmd_nuevacesta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await update.message.reply_text("Usa /start primero.")
             return
 
-        dup_result = await session.execute(select(Basket).where(Basket.name == basket_name))
+        dup_result = await session.execute(select(Basket).where(Basket.name == basket_name, Basket.active == True))
         if dup_result.scalar_one_or_none():
             await update.message.reply_text(f"Ya existe una cesta con el nombre '{basket_name}'.")
             return
 
-        basket = Basket(name=basket_name, strategy=strategy, active=True, cash=Decimal("10000"))
+        basket = Basket(
+            name=basket_name, strategy=strategy, active=True, cash=Decimal("10000"),
+            stop_loss_pct=Decimal(str(stop_loss_pct)) if stop_loss_pct else None,
+        )
         session.add(basket)
         await session.flush()
         session.add(BasketMember(basket_id=basket.id, user_id=caller.id, role="OWNER"))
@@ -442,8 +478,9 @@ async def cmd_eliminarcesta(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             return
 
         basket.active = False
+        basket.name = f"{basket_name}#{basket.id:x}"
         await session.commit()
-        await update.message.reply_text(f"✅ Cesta \"{basket_name}\" desactivada.")
+        await update.message.reply_text(f"✅ Cesta `{basket_name}` desactivada.", parse_mode="Markdown")
 
 
 def get_handlers():

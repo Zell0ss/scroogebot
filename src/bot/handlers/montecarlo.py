@@ -162,11 +162,12 @@ async def cmd_montecarlo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     None,
                     lambda t=asset.ticker: data_provider.get_historical(t, period="2y", interval="1d"),
                 )
+                sl_pct = float(basket.stop_loss_pct) if basket.stop_loss_pct else None
                 mc_result = await loop.run_in_executor(
                     None,
                     analyzer.run_asset,
                     asset.ticker, strategy, basket.strategy,
-                    ohlcv.data, n_sims, horizon, rng, seed,
+                    ohlcv.data, n_sims, horizon, rng, seed, sl_pct,
                 )
                 await update.message.reply_text(
                     fmt.format_asset(mc_result), parse_mode="Markdown"

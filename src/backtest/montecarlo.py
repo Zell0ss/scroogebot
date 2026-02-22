@@ -103,6 +103,7 @@ class MonteCarloAnalyzer:
         horizon: int,
         rng: np.random.Generator,
         seed: int,
+        stop_loss_pct: float | None = None,
     ) -> AssetMonteCarloResult:
         import vectorbt as vbt
 
@@ -144,8 +145,9 @@ class MonteCarloAnalyzer:
                     elif signal.action == "SELL":
                         exits.iloc[i] = True
 
+            sl_kwargs = {"sl_stop": stop_loss_pct / 100} if stop_loss_pct else {}
             pf = vbt.Portfolio.from_signals(
-                path, entries, exits, init_cash=10_000, freq="1D"
+                path, entries, exits, init_cash=10_000, freq="1D", **sl_kwargs
             )
             stats = pf.stats()
 

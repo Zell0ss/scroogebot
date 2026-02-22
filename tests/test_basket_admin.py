@@ -232,7 +232,9 @@ async def test_nuevacesta_invalid_strategy():
 @pytest.mark.asyncio
 async def test_eliminarcesta_ok():
     caller = MagicMock(id=1)
-    basket = MagicMock(id=10, name="TechGrowth", active=True)
+    # Note: MagicMock(name=...) sets mock display name, not .name attr — set separately
+    basket = MagicMock(id=10, active=True)
+    basket.name = "TechGrowth"
     owner_membership = MagicMock()
     session = _make_session(
         _exec(caller),
@@ -248,9 +250,12 @@ async def test_eliminarcesta_ok():
         await cmd_eliminarcesta(update, ctx)
 
     assert basket.active is False
+    # Name must be mangled with #{id:x} so it cannot block future reuse
+    assert basket.name != "TechGrowth", "Name must be mangled on deactivation"
+    assert basket.name.startswith("TechGrowth#"), f"Expected mangled name, got: {basket.name}"
     session.commit.assert_awaited_once()
     reply = update.message.reply_text.call_args[0][0]
-    assert "desactivada" in reply or "TechGrowth" in reply
+    assert "TechGrowth" in reply
 
 
 # ---------------------------------------------------------------------------
@@ -324,6 +329,31 @@ async def test_nuevacesta_reply_includes_capital():
 
 
 @pytest.mark.asyncio
+async def test_nuevacesta_dup_check_filters_by_active():
+    """Duplicate-name check must only block if an ACTIVE basket with that name exists.
+    Inactive baskets with the same name must be ignored so names can be reused."""
+    caller = MagicMock(id=1)
+    session = _make_session(_exec(caller), _exec(None))
+    session.flush = AsyncMock()
+    session.add = MagicMock()
+
+    update = _make_update()
+    ctx = _make_context(["Mi_Ahorro_jmc", "stop_loss"])
+
+    with patch("src.bot.handlers.admin.async_session_factory", return_value=_wrap(session)):
+        await cmd_nuevacesta(update, ctx)
+
+    # The second execute call is the dup-check query.
+    dup_query = session.execute.call_args_list[1][0][0]
+    query_str = str(dup_query)
+    # "AND baskets.active" must appear in WHERE — not just in the SELECT column list
+    assert "AND baskets.active" in query_str, (
+        "Duplicate-name check must filter by active=True so inactive baskets "
+        "don't block name reuse. Got query: " + query_str
+    )
+
+
+@pytest.mark.asyncio
 async def test_eliminarcesta_not_owner():
     caller = MagicMock(id=2)
     basket = MagicMock(id=10, name="TechGrowth", active=True)
@@ -342,3 +372,172 @@ async def test_eliminarcesta_not_owner():
     assert basket.active is True  # unchanged
     reply = update.message.reply_text.call_args[0][0]
     assert "OWNER" in reply
+
+
+# ---------------------------------------------------------------------------
+# /estrategia — stop_loss_pct parsing
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_estrategia_changes_strategy_and_stop_loss_pct():
+    """/estrategia MiCesta rsi 8 → changes strategy to rsi AND stop_loss_pct to 8."""
+    update = _make_update()
+    ctx = _make_context(["MiCesta", "rsi", "8"])
+
+    caller = MagicMock(id=1)
+    basket = MagicMock(id=10, strategy="stop_loss", stop_loss_pct=None, active=True)
+    basket.name = "MiCesta"
+    owner = MagicMock()
+
+    session = _make_session(
+        _exec(caller),
+        _exec(basket),
+        _exec(owner),
+    )
+
+    with patch("src.bot.handlers.admin.async_session_factory", return_value=_wrap(session)):
+        await cmd_estrategia(update, ctx)
+
+    assert basket.strategy == "rsi"
+    assert basket.stop_loss_pct == Decimal("8")
+
+
+@pytest.mark.asyncio
+async def test_estrategia_changes_only_stop_loss_pct():
+    """/estrategia MiCesta 10 → keeps strategy, changes stop_loss_pct to 10."""
+    update = _make_update()
+    ctx = _make_context(["MiCesta", "10"])
+
+    caller = MagicMock(id=1)
+    basket = MagicMock(id=10, strategy="rsi", stop_loss_pct=None, active=True)
+    basket.name = "MiCesta"
+    owner = MagicMock()
+
+    session = _make_session(
+        _exec(caller),
+        _exec(basket),
+        _exec(owner),
+    )
+
+    with patch("src.bot.handlers.admin.async_session_factory", return_value=_wrap(session)):
+        await cmd_estrategia(update, ctx)
+
+    assert basket.strategy == "rsi"   # unchanged
+    assert basket.stop_loss_pct == Decimal("10")
+
+
+@pytest.mark.asyncio
+async def test_estrategia_zero_disables_stop_loss():
+    """/estrategia MiCesta rsi 0 → disables stop_loss_pct (sets to None)."""
+    update = _make_update()
+    ctx = _make_context(["MiCesta", "rsi", "0"])
+
+    caller = MagicMock(id=1)
+    basket = MagicMock(id=10, strategy="stop_loss", stop_loss_pct=Decimal("8"), active=True)
+    basket.name = "MiCesta"
+    owner = MagicMock()
+
+    session = _make_session(
+        _exec(caller),
+        _exec(basket),
+        _exec(owner),
+    )
+
+    with patch("src.bot.handlers.admin.async_session_factory", return_value=_wrap(session)):
+        await cmd_estrategia(update, ctx)
+
+    assert basket.stop_loss_pct is None
+
+
+@pytest.mark.asyncio
+async def test_estrategia_view_shows_stop_loss_pct():
+    """/estrategia MiCesta (view mode) → response shows stop_loss_pct if set."""
+    update = _make_update()
+    ctx = _make_context(["MiCesta"])
+
+    caller = MagicMock(id=1)
+    basket = MagicMock(id=10, strategy="rsi", stop_loss_pct=Decimal("8"), active=True)
+    basket.name = "MiCesta"
+
+    session = _make_session(
+        _exec(caller),
+        _exec(basket),
+    )
+
+    with patch("src.bot.handlers.admin.async_session_factory", return_value=_wrap(session)):
+        await cmd_estrategia(update, ctx)
+
+    reply = update.message.reply_text.call_args[0][0]
+    assert "8" in reply
+    assert "stop" in reply.lower() or "Stop" in reply
+
+
+# ---------------------------------------------------------------------------
+# /nuevacesta — stop_loss_pct optional parameter
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_nuevacesta_with_stop_loss_pct():
+    """/nuevacesta MiCesta rsi 8 → basket created with stop_loss_pct=8."""
+    update = _make_update()
+    ctx = _make_context(["MiCesta", "rsi", "8"])
+
+    caller = MagicMock(id=1)
+
+    session = _make_session(
+        _exec(caller),       # User lookup
+        _exec(None),         # Basket name not taken
+    )
+    session.flush = AsyncMock()
+
+    created_basket = None
+    original_add = session.add
+
+    def capture_add(obj):
+        nonlocal created_basket
+        from src.db.models import Basket
+        if isinstance(obj, Basket):
+            created_basket = obj
+        original_add(obj)
+
+    session.add = capture_add
+
+    with patch("src.bot.handlers.admin.async_session_factory", return_value=_wrap(session)):
+        await cmd_nuevacesta(update, ctx)
+
+    assert created_basket is not None, "A Basket must have been added to session"
+    assert created_basket.strategy == "rsi"
+    assert created_basket.stop_loss_pct == Decimal("8")
+
+
+@pytest.mark.asyncio
+async def test_nuevacesta_without_stop_loss_pct():
+    """/nuevacesta MiCesta rsi → basket created with stop_loss_pct=None."""
+    update = _make_update()
+    ctx = _make_context(["MiCesta", "rsi"])
+
+    caller = MagicMock(id=1)
+
+    session = _make_session(
+        _exec(caller),
+        _exec(None),
+    )
+    session.flush = AsyncMock()
+
+    created_basket = None
+    original_add = session.add
+
+    def capture_add(obj):
+        nonlocal created_basket
+        from src.db.models import Basket
+        if isinstance(obj, Basket):
+            created_basket = obj
+        original_add(obj)
+
+    session.add = capture_add
+
+    with patch("src.bot.handlers.admin.async_session_factory", return_value=_wrap(session)):
+        await cmd_nuevacesta(update, ctx)
+
+    assert created_basket is not None
+    assert created_basket.stop_loss_pct is None

@@ -28,7 +28,7 @@ async def cmd_cesta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
     name = " ".join(context.args)
     async with async_session_factory() as session:
-        result = await session.execute(select(Basket).where(Basket.name == name))
+        result = await session.execute(select(Basket).where(Basket.name == name, Basket.active == True))
         basket = result.scalar_one_or_none()
         if not basket:
             await update.message.reply_text(f"Cesta '{name}' no encontrada.")
@@ -44,9 +44,10 @@ async def cmd_cesta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             .join(User, BasketMember.user_id == User.id)
             .where(BasketMember.basket_id == basket.id)
         )
+        sl_part = f" | Stop-loss: {basket.stop_loss_pct}%" if basket.stop_loss_pct else ""
         lines = [
             f"🗂 `{basket.name}`",
-            f"Estrategia: `{basket.strategy}` | Perfil: {basket.risk_profile}",
+            f"Estrategia: `{basket.strategy}`{sl_part} | Perfil: {basket.risk_profile}",
             f"Cash: {basket.cash:.2f}€",
             "\n*Assets:*",
         ]

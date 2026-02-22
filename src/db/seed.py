@@ -20,6 +20,7 @@ async def seed() -> None:
                     risk_profile=basket_cfg.get("risk_profile", "moderate"),
                     cash=basket_cfg.get("cash", 0),
                     broker=basket_cfg.get("broker", "paper"),
+                    stop_loss_pct=basket_cfg.get("stop_loss_pct"),
                 )
                 session.add(basket)
                 await session.flush()
@@ -27,6 +28,7 @@ async def seed() -> None:
             else:
                 basket.strategy = basket_cfg["strategy"]
                 basket.broker = basket_cfg.get("broker", "paper")
+                basket.stop_loss_pct = basket_cfg.get("stop_loss_pct")
 
             for asset_cfg in basket_cfg.get("assets", []):
                 result = await session.execute(

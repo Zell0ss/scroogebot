@@ -7,7 +7,9 @@ from src.db.models import Alert, Basket, Asset, Position
 from src.data.yahoo import YahooDataProvider
 from src.metrics import alert_scans_total, alerts_generated_total, market_open, scan_duration_seconds
 from src.scheduler.market_hours import any_market_open, is_market_open
-from src.strategies.base import Strategy
+from decimal import Decimal
+
+from src.strategies.base import Signal, Strategy
 from src.strategies.stop_loss import StopLossStrategy
 from src.strategies.ma_crossover import MACrossoverStrategy
 from src.strategies.rsi import RSIStrategy
@@ -79,6 +81,22 @@ class AlertEngine:
                     price_obj = self.data.get_current_price(asset.ticker)
                     historical = self.data.get_historical(asset.ticker, period="3mo", interval="1d")
                     signal = strategy.evaluate(asset.ticker, historical.data, price_obj.price)
+
+                    # Stop-loss layer: position-based, independent of entry strategy.
+                    # Overrides any signal (including BUY) when position is down >= threshold.
+                    if basket.stop_loss_pct and pos.avg_price and pos.avg_price > 0:
+                        threshold = Decimal(str(basket.stop_loss_pct)) / 100
+                        change = (price_obj.price - pos.avg_price) / pos.avg_price
+                        if change <= -threshold:
+                            signal = Signal(
+                                action="SELL", ticker=asset.ticker,
+                                price=price_obj.price,
+                                reason=(
+                                    f"Stop-loss {basket.stop_loss_pct}% activado"
+                                    f" (entrada: {pos.avg_price:.2f})"
+                                ),
+                                confidence=Decimal("0.99"),
+                            )
 
                     if not signal or signal.action not in ("BUY", "SELL"):
                         continue
