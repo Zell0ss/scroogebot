@@ -1,5 +1,9 @@
+import logging
+
 from telegram import Update
 from telegram.ext import ContextTypes, CommandHandler, MessageHandler, filters
+
+logger = logging.getLogger(__name__)
 
 # (command, args_hint, description)
 # Use "" for args_hint when command takes no arguments.
@@ -64,12 +68,17 @@ _HELP_TEXT = _build_help_text()
 
 
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not update.message:
+        return
     await update.message.reply_text(_HELP_TEXT, parse_mode="Markdown")
 
 
 async def cmd_unknown(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not update.message:
+        return
     raw = update.message.text or ""
-    cmd = raw.split()[0] if raw else "desconocido"
+    token = raw.split()[0] if raw.split() else "desconocido"
+    cmd = token.split("@")[0]  # strip @botname suffix for group chats
     await update.message.reply_text(
         f"❓ Comando no reconocido: `{cmd}`\n\n{_HELP_TEXT}",
         parse_mode="Markdown",

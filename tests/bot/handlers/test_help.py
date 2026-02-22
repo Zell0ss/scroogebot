@@ -39,6 +39,7 @@ async def test_cmd_help_sends_help_text():
     call_kwargs = update.message.reply_text.call_args
     text = call_kwargs[0][0] if call_kwargs[0] else call_kwargs[1].get("text", "")
     assert "/valoracion" in text
+    assert call_kwargs[1].get("parse_mode") == "Markdown"
 
 
 @pytest.mark.asyncio
@@ -52,5 +53,20 @@ async def test_cmd_unknown_shows_command_name_and_help():
     update.message.reply_text.assert_called_once()
     call_kwargs = update.message.reply_text.call_args
     text = call_kwargs[0][0] if call_kwargs[0] else call_kwargs[1].get("text", "")
-    assert "hazme_rico" in text or "no reconocido" in text
+    assert "no reconocido" in text
+    assert "hazme_rico" in text
     assert "/valoracion" in text
+
+
+@pytest.mark.asyncio
+async def test_cmd_unknown_strips_botname_suffix():
+    from src.bot.handlers.help import cmd_unknown
+    update = MagicMock()
+    update.message.reply_text = AsyncMock()
+    update.message.text = "/hazme_rico@ScroogeBotProd"
+    context = MagicMock()
+    await cmd_unknown(update, context)
+    call_kwargs = update.message.reply_text.call_args
+    text = call_kwargs[0][0] if call_kwargs[0] else call_kwargs[1].get("text", "")
+    assert "@ScroogeBotProd" not in text.split("\n")[0]  # suffix stripped from first line
+    assert "hazme_rico" in text
