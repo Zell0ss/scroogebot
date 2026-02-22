@@ -51,25 +51,45 @@ Una vez dentro, explora los comandos disponibles:
 
 ---
 
-## Módulo 1 — Tu primera cesta: *"Mi Ahorro"* 🛡️
+## Módulo 1 — Tu primera cesta: *"Mi_Ahorro"* 🛡️
 
 ### 1.1 ¿Qué es una cesta?
 
 > 📚 Una **cesta** es una cartera de valores: una colección de acciones y activos que gestionas juntos. Tener varios activos distintos se llama **diversificar**, y es uno de los principios fundamentales de la inversión: si un sector cae, los demás amortiguan el golpe. "No pongas todos los huevos en la misma cesta" no es solo un dicho — es matemáticamente correcto.
 
-Vamos a crear una cesta conservadora, pensada para preservar capital. La llamaremos *Mi Ahorro*.
+Vamos a crear una cesta conservadora, pensada para preservar capital. La llamaremos *Mi_Ahorro*.
 
 ### 1.2 Crear la cesta
 
 ```
-/nuevacesta Mi Ahorro stop_loss
+/nuevacesta Mi_Ahorro stop_loss
 ```
+![Nueva cesta](docs/img/guia/nueva_cesta.png)
+
 
 El bot te confirma que eres el OWNER de la cesta y que tiene **€10.000 de capital inicial** para operar.
 
 ### 1.3 La estrategia stop_loss
 
 > 📚 **Stop loss** (literalmente "parar la pérdida") es una regla automática: si una acción cae más de un porcentaje predefinido desde el precio de compra, el bot te avisa para venderla. Es la **red de seguridad** del inversor conservador — limita las pérdidas antes de que se hagan grandes. Funciona especialmente bien con activos estables con dividendo, donde no esperas grandes oscilaciones pero quieres protegerte si algo va muy mal.
+
+Las cestas se crean sin stop loss por defecto. Puedes configurarlo directamente al crear la cesta — por ejemplo un 10%:
+
+```
+/nuevacesta Mi_Ahorro stop_loss 10
+```
+
+O si ya tienes la cesta creada, puedes añadir o cambiar el stop loss con:
+
+```
+/estrategia Mi_Ahorro 10
+```
+
+Y para desactivarlo (volver a sin stop loss):
+
+```
+/estrategia Mi_Ahorro 0
+```
 
 ### 1.4 Buscar y añadir activos
 
@@ -92,10 +112,12 @@ Las utilities son activos muy estables: poca volatilidad, buen dividendo histór
 Aparece **SAN.MC** — Banco Santander. Un banco con dividendo histórico, más volátil que una utility pero bien establecido a nivel global.
 
 ```
-/buscar oro
+/buscar gold
 ```
 
 Aparece **GLD** — un ETF que replica el precio del oro.
+
+> ⚠️ Yahoo Finance usa nombres en inglés. Para buscar activos en español no siempre funciona: busca `gold` (no `oro`), `silver` (no `plata`), `oil` (no `petróleo`), etc. Si ya conoces el ticker, búscalo directamente: `/buscar GLD`.
 
 > 📚 Un **ETF** (Exchange-Traded Fund) es un fondo que cotiza en bolsa como una acción normal. En lugar de comprar acciones de una empresa, compras un "paquete" que replica un índice o un activo (como el oro o el S&P 500). Misma liquidez que una acción, mayor diversificación con una sola compra. El oro es el **activo refugio** clásico: cuando los mercados caen y el pánico se extiende, los inversores compran oro, que tiende a subir.
 
@@ -110,10 +132,10 @@ Aparece **MSFT** — Microsoft. Tecnología de gran capitalización: más volát
 Antes de comprar, dile al bot en qué cesta quieres operar. Es como el "prompt" de tu terminal:
 
 ```
-/sel Mi Ahorro
+/sel Mi_Ahorro
 ```
 
-El bot confirma: *🗂 Cesta activa: Mi Ahorro*. Ahora todas las órdenes irán a esta cesta:
+El bot confirma: *🗂 Cesta activa: Mi_Ahorro*. Ahora todas las órdenes irán a esta cesta:
 
 ```
 /compra IBE.MC 20
@@ -139,25 +161,27 @@ El bot confirma: *🗂 Cesta activa: Mi Ahorro*. Ahora todas las órdenes irán 
 >
 > Las **medias móviles (SMA20 y SMA50)** suavizan el precio para mostrar la tendencia. Si el precio está por encima de ambas medias, la tendencia es alcista. Si SMA20 > SMA50, el corto plazo es más fuerte que el largo.
 
+> ⚠️ En tendencias fuertes, como por ejemplo NVIDIA cuando el boom de las GPU, el RSI puede permanecer en zona alta durante semanas: topdo el mundo quiere comprar — no es automáticamente señal de venta, a veces conviene esperar, pero eso ya es lectura del mercado.
+
 ### 1.7 Ver tu cartera
 
 ```
 /cartera
 ```
 
-<!-- 📸 Captura: /cartera mostrando posiciones de Mi Ahorro con cantidades y precio medio -->
-![Posiciones de Mi Ahorro](docs/img/guia/cartera.png)
+<!-- 📸 Captura: /cartera mostrando posiciones de Mi_Ahorro con cantidades y precio medio -->
+![Posiciones de Mi_Ahorro](docs/img/guia/cartera.png)
 
 Ves tus posiciones: cuántas acciones de cada activo y a qué precio medio las compraste. El bot calcula automáticamente el cash restante.
 
 ---
 
-## Módulo 2 — Tu segunda cesta: *"Mi Apuesta"* 🚀
+## Módulo 2 — Tu segunda cesta: *"Mi_Apuesta"* 🚀
 
 ### 2.1 El dilema de Álvaro
 <img src="docs/img/guia/Alvaro_duda.png" alt="Álvaro" width="120" align="right">
 
-*Álvaro mira su cesta conservadora. Iberdrola y el oro no le van a hacer rico en poco tiempo. Pero le han dicho que NVIDIA ha multiplicado su precio varias veces en pocos años. ¿No estará dejando dinero sobre la mesa?*
+*Álvaro mira su cesta conservadora y mueve sus tres brazos (si, a efectos de este curso, Alvaro tiene tres brazos). Iberdrola y el oro no le van a hacer rico en poco tiempo. Pero le han dicho que NVIDIA ha multiplicado su precio varias veces en pocos años. ¿No estará dejando dinero sobre la mesa?*
 
 > 📚 **Riesgo y rentabilidad son inseparables.** Iberdrola puede darte un 6-8% anual con poca volatilidad — dormir tranquilo. NVIDIA puede darte un 80%... o hacerte perder un 40% en cuestión de meses. No existe ningún activo que dé más rentabilidad sin más riesgo: si existiera, todos lo comprarían instantáneamente hasta que dejara de ser una ganga. La clave no es evitar el riesgo — es **entenderlo, medirlo y decidir cuánto puedes asumir**.
 
@@ -166,9 +190,13 @@ Vamos a crear una segunda cesta más agresiva para ver la diferencia en la prác
 ### 2.2 Crear la cesta con estrategia RSI
 
 ```
-/nuevacesta Mi Apuesta rsi
+/nuevacesta Mi_Apuesta rsi 
 ```
 
+opcionalmente le podemos añadir un stop loss de un 8% con:
+```
+/nuevacesta Mi_Apuesta rsi 8
+```
 ### 2.3 La estrategia RSI
 
 > 📚 La **estrategia RSI** es contraintuitiva: compra cuando nadie quiere el activo (RSI < 30, sobrevendido) y vende cuando todos lo quieren (RSI > 70, sobrecomprado). Es una estrategia de **reversión a la media**: apuesta a que los extremos de precio son temporales y el activo volverá a su valor "normal". Funciona mejor en activos volátiles con tendencia histórica clara — exactamente el perfil de las grandes tecnológicas, que oscilan mucho pero mantienen tendencia alcista de fondo.
@@ -181,6 +209,7 @@ Vamos a crear una segunda cesta más agresiva para ver la diferencia en la prác
 
 **NVDA** — NVIDIA Corporation. Líder en chips de inteligencia artificial. Alta volatilidad, alto potencial. El tipo de activo donde la estrategia RSI tiene más sentido.
 
+
 ```
 /buscar apple
 ```
@@ -188,7 +217,7 @@ Vamos a crear una segunda cesta más agresiva para ver la diferencia en la prác
 **AAPL** — Apple. Gran capitalización tecnológica con ecosistema único. Algo menos volátil que NVIDIA pero con mucho más recorrido que una utility.
 
 ```
-/sel Mi Apuesta
+/sel Mi_Apuesta
 /compra NVDA 5
 /compra AAPL 8
 ```
@@ -202,7 +231,7 @@ Vamos a crear una segunda cesta más agresiva para ver la diferencia en la prác
 <!-- 📸 Captura: /analiza NVDA mostrando precio, RSI (probablemente alto) y SMA — contraste con IBE -->
 ![Análisis técnico de NVDA](docs/img/guia/analiza-nvda.png)
 
-El bot incluye ahora la línea **ATR (14)** — el porcentaje que oscila de media el activo cada día. Es la medida más directa de volatilidad que puedes leer sin salir del chat.
+Fijemonos en la línea **ATR (14)** — el porcentaje que oscila de media el activo cada día. Es la medida más directa de volatilidad que puedes leer sin salir del chat.
 
 Compara ahora la salida de `/analiza` entre los dos activos:
 
@@ -213,13 +242,13 @@ Compara ahora la salida de `/analiza` entre los dos activos:
 | Estrategia natural | Stop loss (proteger lo ganado) | RSI (aprovechar los extremos) |
 | Perfil inversor | Conservador | Tolerante al riesgo |
 
-*Si el RSI de NVDA está ahora en 72, la estrategia RSI **no habría comprado** — esperaría a que bajara a 30. Esto es exactamente lo que hace el bot automáticamente cuando las alertas están activas: vigila por ti.*
+*Si el RSI de NVDA estuviera ahora en 72, la estrategia RSI **no habría comprado** — esperaría a que bajara a 30. Esto es exactamente lo que hace el bot automáticamente cuando las alertas están activas: vigila por ti.*
 
 ### 2.6 El problema oculto de la diversificación: correlación
 
-Álvaro mira su cesta *Mi Apuesta* satisfecho: tiene NVIDIA y Apple. Dos empresas distintas.
+Álvaro mira su cesta *Mi_Apuesta* satisfecho: tiene NVIDIA y Apple. Dos empresas distintas.
 Dos activos distintos. ¿Está diversificado?
-
+![cartera RSI](docs/img/guia/cartera_rsi.png)
 No del todo.
 
 > 📚 La **correlación** mide cómo se mueven dos activos entre sí. Va de -1 a +1:
@@ -235,7 +264,7 @@ No del todo.
 > tecnológicas americanas de gran capitalización. En una crisis del sector tech — como
 > la de 2022, cuando el Nasdaq cayó un 33% — caen juntas y al mismo tiempo.
 >
-> Por eso *Mi Ahorro* está mejor diversificada que parece: IBE.MC (utility europea),
+> Por eso *Mi_Ahorro* está mejor diversificada que parece: IBE.MC (utility europea),
 > SAN.MC (banca española), GLD (oro, correlación negativa con renta variable en crisis)
 > y MSFT (tech americana) tienen correlaciones mucho más bajas entre sí. Cuando las
 > tecnológicas caen, el oro típicamente sube. Cuando la banca europea sufre, las
@@ -245,15 +274,81 @@ No del todo.
 > que no caigan todos a la vez por la misma razón.
 
 
-### 2.7 ¿Cuánto comprar? Position sizing
+### 2.7 ¿Cuánto comprar? Position sizing y Stop Loss
 
-Antes de invertir en algo volátil, la pregunta crucial no es "¿cuánto puede subir?" sino "¿cuánto puedo perder?"
+Antes de invertir en algo volátil, la pregunta crucial no es "¿cuánto puede subir?" sino "¿cuánto puedo perder?".
+
+Una estrategia básica que se tiene en bolsa es stop loss/take profit (puedes elegirla para tu cartera). Es establecer con que precios límite decides vender un activo bien para controlar la perdida bien para asegurar la ganancia. Si un activo baja del precio stop loss: la venta debe ser inmediata. Lo mismo si pasa del take profit (no sea que caiga instantes despues). Aunque no se use esta estrategia es la base del sizing para determinar cuanto comprar de cada activo en tu cartera
 
 ```
 /sizing NVDA
 ```
 
-> 📚 El **position sizing** (dimensionamiento de posición) calcula cuántas acciones comprar para que, si la operación sale mal y el stop loss se activa, la pérdida total no supere un porcentaje máximo de tu cartera (típicamente 0,5-1%). Es la diferencia entre un inversor disciplinado y alguien que se lo juega todo a una carta. El bot calcula el stop automáticamente usando la **volatilidad reciente del activo (ATR)**: cuanto más volátil sea, más lejos hay que poner el stop, y por tanto menos acciones puedes comprar manteniendo el riesgo controlado.
+> 📚 El **position sizing** (dimensionamiento de posición) calcula el número máximo de acciones que puedes comprar para que, si la operación sale mal y el stop loss se activa, la pérdida total no supere un porcentaje fijo de tu cartera. Es la diferencia entre un inversor disciplinado y alguien que se lo juega todo a una carta.
+
+El bot responde algo así:
+
+```
+📊 Position Sizing — NVIDIA Corporation (NVDA)
+
+Precio actual:      €875,32
+Stop loss:          €837,18  (ATR×2)
+  └─ ATR(14):       €19,07  |  Volatilidad media
+Distancia al stop:  €38,14 (-4,36%)
+
+Acciones:           3  (limitado por riesgo)
+Posición nominal:   €2.625,96 (13,13% de cartera)
+Riesgo máximo:      €150,00 (0,75%)
+
+Comisiones (paper): €0,00 compra + €0,00 venta
+Riesgo real:        €114,42
+
+✅ Stop dentro del rango recomendado
+```
+
+**Qué significa cada línea:**
+
+| Campo | Significado |
+|---|---|
+| **Precio actual** | Cotización en tiempo real, convertida a € si el activo cotiza en otra divisa |
+| **Stop loss (ATR×2)** | Nivel de precio al que venderías si la operación sale mal. Automático: precio − 2×ATR (movimiento diario típico x 2 para dar margen) |
+| **ATR(14)** | *Average True Range* a 14 días: el movimiento diario típico del activo. A más volátil, stop más alejado. |
+| **Distancia al stop** | Cuánto puede caer el precio antes de que vendas. En € y en % |
+| **Acciones** | Cuántas acciones comprar. "limitado por riesgo" = es el riesgo lo que te frena, no el tamaño |
+| **Posición nominal** | Coste total de la compra (acciones × precio) |
+| **% de cartera** | Qué porcentaje del capital total representa esta posición |
+| **Riesgo máximo** | El máximo que el bot te deja perder: 0,75% del cash de tu cesta activa |
+| **Comisiones** | Lo que cobran compra + venta estimadas. Cambia según el broker de la cesta |
+| **Riesgo real** | Pérdida real si salta el stop: (acciones × distancia) + comisiones |
+
+**¿Qué capital usa el bot para calcular?**
+
+El bot usa el **cash disponible de la cesta activa** (la que hayas seleccionado con `/sel`). La primera línea del resultado siempre muestra qué cesta y qué capital está usando. Si no tienes ninguna cesta activa, te avisa y aplica un capital de referencia genérico.
+
+**El stop loss: automático o manual**
+
+Por defecto, el bot coloca el stop a **2×ATR por debajo del precio**. El ATR mide cuánto se mueve el activo en un día normal: multiplicar por 2 da un margen suficiente para que la volatilidad habitual no dispare el stop accidentalmente.
+
+Puedes pasar stop y/o capital explícitamente:
+
+```
+/sizing NVDA 840            ← stop manual en 840, capital del cash de tu cesta
+/sizing NVDA 840 8000       ← stop manual + capital fijo de €8.000
+```
+
+Si pasas capital explícito como tercer argumento, el bot lo usa en lugar del cash de la cesta activa.
+
+**¿Cuándo sale "limitado por nominal" en vez de "por riesgo"?**
+
+El bot aplica dos límites a la vez: el riesgo máximo (0,75% de cartera) y el tamaño máximo de posición (20% de cartera). Si con el stop muy cercano el cálculo de riesgo te permitiría comprar demasiadas acciones, el límite de posición se activa primero y el campo muestra `limitado por nominal`.
+
+**Avisos posibles:**
+
+- *Stop muy alejado (X%)*: el stop está más del 15% por debajo del precio. La posición resultante sería tan pequeña que apenas vale la pena. Considera usar el stop automático ATR.
+- *Precio convertido desde USD*: el activo cotiza en dólares; el bot ha aplicado el tipo de cambio EUR/USD.
+- *Riesgo insuficiente para esta distancia de stop*: el stop está tan lejos que ni siquiera 1 acción cabe dentro del límite de riesgo. La posición sale a 0 acciones.
+
+- *stop loss debe ser inferior al precio actual*: se ha metido un stop loss muy alto. Puedes usar el stop automático ATR o fijarlo manualmente mas bajo.
 
 ---
 
@@ -261,8 +356,7 @@ Antes de invertir en algo volátil, la pregunta crucial no es "¿cuánto puede s
 
 ## Interludio — Cuándo están abiertos los mercados 🕐
 
-Antes de que el bot te envíe tu primera alerta automática, un detalle práctico
-que evita confusiones:
+Antes de que el bot te envíe tu primera alerta automática, un detalle práctico que evita confusiones:
 
 > 📚 Los mercados financieros tienen **horarios de apertura** distintos según el país.
 > Las cotizaciones solo se actualizan cuando el mercado correspondiente está abierto.
@@ -279,13 +373,9 @@ En verano los horarios americanos se adelantan una hora por el cambio horario en
 
 **Lo que esto significa para ti con el bot:**
 
-- Una alerta que llega a las 23:00 sobre un activo americano puede ser legítima —
-  el mercado todavía está abierto.
-- Una alerta sobre Iberdrola a las 20:00 no puede ejecutarse a precio de mercado —
-  BME ya cerró. El bot opera con el precio de Yahoo Finance, que fuera de horario
-  devuelve el último cierre.
-- Los fines de semana todos los mercados están cerrados. Las alertas que lleguen
-  entonces reflejan precios del viernes.
+- Una alerta que llega a las 23:00 sobre un activo americano puede ser legítima — el mercado todavía está abierto.
+- Una alerta sobre Iberdrola a las 20:00 no puede ejecutarse a precio de mercado — BME ya cerró. El bot opera con el precio de Yahoo Finance, que fuera de horario  devuelve el último cierre.
+- Los fines de semana todos los mercados están cerrados. Las alertas que lleguen entonces reflejan precios del viernes.
 
 > ⚠️ **Limitación actual**: el bot escanea posiciones cada 5 minutos
 > independientemente del horario de mercado. En una versión futura, el escáner
@@ -302,15 +392,16 @@ En verano los horarios americanos se adelantan una hora por el cambio horario en
 > 📚 El **backtest** responde a una pregunta fascinante: *"¿y si hubiera aplicado esta estrategia el año pasado?"*. El bot descarga los precios históricos de cada activo, simula todas las señales de compra/venta que habría generado tu estrategia, y calcula el resultado real. **No predice el futuro** — el pasado no se repite de forma idéntica — pero sirve para descartar estrategias claramente malas y entender cómo se comportan bajo distintas condiciones de mercado (tendencias, laterales, crisis).
 
 ### 3.2 Ejecutar el backtest
+El backtest usa capital inicial de €10.000, estrategia stop_loss en modo "siempre invertido" (entras al día 60, vuelves a entrar el día siguiente a cada salida).
 
 ```
 /backtest 1y
 ```
 
-<!-- 📸 Captura: /backtest 1y mostrando resultados de ambas cestas (Mi Ahorro y Mi Apuesta) -->
+<!-- 📸 Captura: /backtest 1y mostrando resultados de ambas cestas (Mi_Ahorro y Mi_Apuesta) -->
 ![Resultados del backtest a 1 año](docs/img/guia/backtest.png)
 
-El bot muestra los resultados de ambas cestas. Aprende a leer estas cuatro métricas:
+El bot te puede mostrar los resultados de ambas cestas (tienes que cambiar entre ellas con /sel). Aprende a leer estas cuatro métricas:
 
 **Rentabilidad vs B&H y Alpha (α)**
 La estrategia frente a "simplemente haber comprado y no haber tocado nada" (Buy & Hold). El **alpha** es la diferencia — lo que añade (o resta) la estrategia activa respecto a no hacer nada.
@@ -324,10 +415,57 @@ La caída máxima desde un pico hasta el valle más profundo. Si es -35%, en alg
 **Win rate**
 Porcentaje de operaciones ganadoras. Un 40% de win rate puede ser completamente rentable si las ganancias son 3 veces mayores que las pérdidas. No busques ganar siempre — busca que las ganancias superen a las pérdidas en conjunto.
 
----
-<img src="docs/img/guia/Alvaro_la_lia.png" alt="Álvaro" width="120" align="right">
+Expliquemos un caso con detalle, la cesta de stop loss: 
 
-*Álvaro compara: Mi Apuesta tiene mayor rentabilidad potencial pero un drawdown del -25%. Mi Ahorro tiene un drawdown del -7%. Decide que en la vida real usará una estrategia intermedia, y que antes de tocar dinero real necesita entender mejor su propio umbral de tolerancia al dolor.*
+**Backtest: Mi_Apuesta_jmc (1y)**
+   Estrategia: rsi
+
+**NVDA**
+  Rentabilidad: +32.6%  (B&H: +41.2%,  α: -8.7%)
+  Sharpe: 1.40  |  Max DD: -19.2%
+  Operaciones: 9  |  Win rate: +88%
+
+RSI funcionó razonablemente bien
+9 operaciones, 88% de éxito → RSI identificó bien los momentos de entrada (sobrevendido, RSI<30) y salida (sobrecomprado, RSI>70)
+
+Ganó +32.6% vs B&H +41.2% → se quedó fuera del mercado en algunos tramos donde NVDA siguió subiendo (RSI la consideraba "cara" y la vendía, pero siguió subiendo)
+
+Alpha -8.7%: perdió esa diferencia respecto a simplemente mantener
+
+El punto más importante aquí es el riesgo:
+
+Max DD -19.2% → en el peor momento, la estrategia llegó a estar un 19% por debajo de su pico. NVDA es muy volátil, y RSI no te protege de grandes caídas dentro de cada tramo en que estás dentro
+
+Sharpe 1.40 → aceptable, pero no tan eficiente como los resultados de Mi_Ahorro con IBE/GLD
+
+Conclusión NVDA: RSI capturó el 79% de la subida del año (32.6/41.2), con riesgo notable. No es mala lectura para un activo tan volátil.
+
+**AAPL**
+  Rentabilidad: +1.9%  (B&H: +8.2%,  α: -6.3%)
+  Sharpe: 0.29  |  Max DD: -7.9%
+  Operaciones: 1  |  Win rate: +0%
+
+resultado peculiar
+1 operación, 0% win rate, pero +1.9% — esto parece contradictorio. Lo que probablemente ocurrió:
+
+RSI nunca generó señal de compra clara para AAPL (nunca llegó a RSI<30, no hubo un pánico suficiente)
+La lógica "always invested" del backtest entró al día 60 como fallback
+RSI generó 1 señal de venta (RSI>70) cerrando esa posición con pérdida → 0% win rate
+Re-entró automáticamente al día siguiente
+La posición final quedó abierta hasta el fin del año, recuperando algo → +1.9% neto
+En otras palabras: AAPL no le dio a RSI buenas oportunidades de entrada ese año. La estrategia estuvo casi siempre en el mercado por defecto, no por señal real.
+
+Sharpe 0.29 es bajo — casi tan malo como no hacer nada con riesgo.
+
+Resumen de esta cartera
+Estrategia	B&H	¿Mereció la pena?
+NVDA	+32.6%	+41.2%	Razonable — capturó la mayor parte con menos estrés
+AAPL	+1.9%	+8.2%	No — RSI no encontró buenas señales
+Para Mi_Apuesta_jmc (que intuyo que es la cartera más agresiva/especulativa): RSI no es la estrategia ideal para activos como NVDA o AAPL que suben tendencialmente. RSI es mejor en activos más volátiles y laterales donde sí hay ciclos claros de sobrecompra/sobreventa. Para una apuesta alcista en tecnología, MA Crossover podría ser más apropiada — sigue la tendencia en vez de intentar comprar los mínimos
+
+---
+
+*Álvaro compara: Mi_Apuesta tiene mayor rentabilidad potencial pero un drawdown del -19% y -7%. Mi_Ahorro tiene un drawdown del -7%. Decide que en la vida real usará una estrategia intermedia, y que antes de tocar dinero real necesita entender mejor su propio umbral de tolerancia al dolor.*
 
 ---
 
@@ -341,14 +479,14 @@ Porcentaje de operaciones ganadoras. Un 40% de win rate puede ser completamente 
 >
 > Es la herramienta más **honesta** para hablar del futuro: no elimina la incertidumbre, la **cuantifica**. Así puedes tomar decisiones informadas en lugar de imaginar que solo existen el escenario bueno y el catastrófico.
 
-### 4.2 Simular Mi Apuesta
+### 4.2 Simular Mi_Apuesta
 
 ```
-/montecarlo Mi Apuesta
+/montecarlo Mi_Apuesta
 ```
 
-<!-- 📸 Captura: /montecarlo Mi Apuesta mostrando distribución con percentiles p10/p50/p90 -->
-![Simulación Monte Carlo de Mi Apuesta](docs/img/guia/montecarlo.png)
+<!-- 📸 Captura: /montecarlo Mi_Apuesta mostrando distribución con percentiles p10/p50/p90 -->
+![Simulación Monte Carlo de Mi_Apuesta](docs/img/guia/montecarlo.png)
 
 Lee los percentiles:
 
@@ -358,17 +496,17 @@ Lee los percentiles:
 | **p50** | Escenario mediano — el resultado más frecuente en las simulaciones. |
 | **p90** | Escenario optimista — el 10% de mejores simulaciones. Tu techo probable. |
 
-*Álvaro ve que en el escenario p10, sus €10.000 quedarían en €7.600. Se pregunta: ¿podría vivir con esa pérdida? Sí — no es dinero del alquiler, es ahorro extra. Pero decide que no pondrá más del 20% de sus ahorros totales en Mi Apuesta. El 80% restante irá a Mi Ahorro. Eso es **gestión del riesgo real**: no evitar las apuestas audaces, sino limitarlas a lo que puedes permitirte perder.*
+
+*Álvaro ve que en el escenario p10, sus €10.000 quedarían en €7.600. Se pregunta: ¿podría vivir con esa pérdida? Sí — no es dinero del alquiler, es ahorro extra. Pero decide que no pondrá más del 20% de sus ahorros totales en Mi_Apuesta. El 80% restante irá a Mi_Ahorro. Eso es **gestión del riesgo real**: no evitar las apuestas audaces, sino limitarlas a lo que puedes permitirte perder.*
 
 ---
 ---
 
-## Módulo 5 — Los errores que vas a querer cometer (y no deberías) ⚠️
+## Módulo 5 — Los errores que vas a querer cometer (y no deberías) ⚠️ 
 
-*Álvaro lleva una hora aprendiendo. Tiene dos cestas, ha visto un backtest y
-una simulación Monte Carlo. Ahora es exactamente el momento más peligroso:
-sabe suficiente para sentirse seguro, pero no suficiente para saber lo que
-no sabe.*
+<img src="docs/img/guia/Alvaro_la_lia.png" alt="Álvaro" width="120" align="right">
+
+*Álvaro lleva una hora aprendiendo. Tiene dos cestas, ha visto un backtest y una simulación Monte Carlo. Ahora es exactamente el momento más peligroso: sabe suficiente para sentirse seguro, pero no suficiente para saber lo que no sabe.*
 
 Estos son los errores más frecuentes — no en teoría, sino en la práctica real
 de inversores que empezaron exactamente donde tú estás ahora.
@@ -377,10 +515,8 @@ de inversores que empezaron exactamente donde tú estás ahora.
 
 ### Error 1 — Vender en el momento de pánico
 
-El backtest te mostró el **máximo drawdown**: esa caída del -25% en *Mi Apuesta*.
-Un número en pantalla parece manejable. Pero cuando es dinero real y llevas tres
-semanas viendo cómo tu cartera pierde valor cada día, la presión psicológica es
-completamente distinta.
+El backtest te mostró el **máximo drawdown**: esa caída del -25% en *Mi_Apuesta*.
+Un número en pantalla parece manejable. Pero cuando es dinero real y llevas tres semanas viendo cómo tu cartera pierde valor cada día, la presión psicológica es completamente distinta.
 
 > 📚 Los estudios de comportamiento inversor (DALBAR, entre otros) muestran
 > consistentemente que el inversor medio obtiene bastante menos rentabilidad que
@@ -389,94 +525,61 @@ completamente distinta.
 > es máximo). La estrategia correcta y la psicología humana van en sentido opuesto.
 
 **Cómo practicarlo aquí**: cuando tu cesta de papel trading esté en negativo
-durante varios días seguidos, observa cómo te sientes. ¿Tienes ganas de
-liquidar? Ese impulso — en papel, sin consecuencias — es exactamente lo que
-tendrás que gestionar con dinero real.
+durante varios días seguidos, observa cómo te sientes. ¿Tienes ganas de liquidar? Ese impulso — en papel, sin consecuencias — es exactamente lo que tendrás que gestionar con dinero real.
 
 ---
 
 ### Error 2 — Overtrading: confundir actividad con rentabilidad
 
-La interfaz de comandos hace que operar sea muy fácil. `/compra`, `/vende` —
-dos segundos. Esa facilidad es una trampa.
+La interfaz de comandos hace que operar sea muy fácil. `/compra`, `/vende` — dos segundos. Esa facilidad es una trampa.
 
-> 📚 Cada operación tiene un coste implícito: en un broker real hay comisiones,
-> spread bid-ask, y en algunos países impacto fiscal por cada plusvalía realizada.
-> Pero incluso en papel trading hay un coste invisible: **cada operación es una
-> decisión que puedes acertar o fallar**. Más operaciones = más oportunidades de
-> equivocarse. Warren Buffett tiene una frase conocida: su horizonte de inversión
-> favorito es "para siempre". No es una exageración filosófica — es matemática
-> del interés compuesto.
+> 📚 Cada operación tiene un coste implícito: en un broker real hay comisiones, spread bid-ask, y en algunos países, como España, impacto fiscal por cada plusvalía realizada.
+> Pero incluso en papel trading hay un coste invisible: **cada operación es una  decisión que puedes acertar o fallar**. Más operaciones = más oportunidades de equivocarse. 
+> Warren Buffett tiene una frase conocida: su horizonte de inversión  favorito es "para siempre". No es una exageración filosófica — es matemática del interés compuesto.
 
-Una señal de alerta personal: si llevas más de 10 operaciones en una semana
-en una cesta pequeña, es probable que estés operando por ansiedad, no por
-análisis.
+Una señal de alerta personal: si llevas más de 10 operaciones en una semana en una cesta pequeña, es probable que estés operando por ansiedad, no por análisis.
 
 ---
 
 ### Error 3 — Sobreponderar lo que conoces (sesgo de familiaridad)
 
-Es tentador comprar Iberdrola porque conoces la marca, o NVIDIA porque usas
-sus tarjetas gráficas, o Apple porque tienes un iPhone. El conocimiento del
-producto no es conocimiento financiero de la empresa.
+Es tentador comprar Iberdrola porque conoces la marca, o NVIDIA porque usas sus tarjetas gráficas, o Apple porque tienes un iPhone. El conocimiento del producto no es conocimiento financiero de la empresa.
 
-> 📚 El **sesgo de familiaridad** hace que los inversores sobreponderen empresas
-> de su país, su sector laboral o su vida cotidiana. Los empleados de Enron
-> tenían el 60% de sus ahorros para la jubilación en acciones de Enron.
-> Conocían la empresa mejor que nadie. Perdieron todo cuando quebró.
+> 📚 El **sesgo de familiaridad** hace que los inversores sobreponderen empresas de su país, su sector laboral o su vida cotidiana. Los empleados de Enron  tenían el 60% de sus ahorros para la jubilación en acciones de Enron.
+> Conocían la empresa mejor que nadie. Perdieron todo cuando quebró. 
 >
 > Conocer una empresa como consumidor te dice algo sobre su producto.
-> No te dice nada sobre su valoración, su deuda, sus márgenes o su
-> competencia.
+> No te dice nada sobre su valoración, su deuda, sus márgenes o su competencia.
 
-**El antídoto**: antes de comprar algo "porque lo conoces", usa `/analiza`
-y mira los números. Si el RSI está en 78 y llevas meses sin ver una
-corrección, "conocer la empresa" no es motivo suficiente para comprar ahora.
+**El antídoto**: antes de comprar algo "porque lo conoces", usa `/analiza` y mira los números. Si el RSI está en 78 y llevas meses sin ver una corrección, "conocer la empresa" no es motivo suficiente para comprar ahora.
 
 ---
 
 ### Error 4 — Ignorar el tamaño de la posición
 
-Has visto `/sizing` en el Módulo 2. Es el comando menos glamuroso del bot
-y probablemente el más importante.
+Has visto `/sizing` en el Módulo 2. Es el comando menos glamuroso del bot y probablemente el más importante.
 
-> 📚 Puedes tener razón en tu análisis — el activo sube exactamente como
-> predijiste — y aun así perder dinero si tenías una posición demasiado grande
-> en algo que bajó antes de subir. El **position sizing** no es sobre ser
-> conservador: es sobre sobrevivir el camino hasta tener razón.
+> 📚 Puedes tener razón en tu análisis — el activo sube exactamente como predijiste — y aun así perder dinero si tenías una posición demasiado grande en algo que bajó antes de subir. El **position sizing** no es sobre ser conservador: es sobre sobrevivir el camino hasta tener razón.
 >
-> El error clásico del principiante no es equivocarse en la dirección —
-> es no poder aguantar una posición correcta porque el tamaño era tan grande
-> que el drawdown temporal le obligó a salir antes de que el precio se recuperara.
+> El error clásico del principiante no es equivocarse en la dirección — es no poder aguantar una posición correcta porque el tamaño era tan grande que el drawdown temporal le obligó a salir antes de que el precio se recuperara.
 
-Regla práctica: ninguna posición individual debería representar más del
-10-15% de tu cartera total. Con activos volátiles como NVDA, considera
-bajar ese límite al 5-8%.
+Regla práctica: ninguna posición individual debería representar más del 10-15% de tu cartera total. Con activos volátiles como NVDA, considera bajar ese límite al 5-8%.
 
 ---
 
 ### Error 5 — Perseguir rentabilidades pasadas
 
-El backtest de *Mi Apuesta* muestra buenos resultados el último año. NVIDIA
-subió mucho. La estrategia RSI funcionó bien. Todo esto es verdad.
+El backtest de *Mi_Apuesta* muestra buenos resultados el último año. NVIDIA subió mucho. La estrategia RSI funcionó bien. Todo esto es verdad.
 
 Y es completamente irrelevante para predecir lo que pasará el año que viene.
 
-> 📚 **"Rentabilidades pasadas no garantizan rentabilidades futuras"** es la
-> advertencia legal que aparece en todo fondo de inversión. No es burocracia —
-> es la verdad más importante de las finanzas. Los fondos que más suben en un
-> año dado son, estadísticamente, peores que la media en los años siguientes
-> (regresión a la media). Comprar lo que ya subió mucho porque "está funcionando"
-> es, con frecuencia, llegar tarde a la fiesta.
+> 📚 **"Rentabilidades pasadas no garantizan rentabilidades futuras"** es la advertencia legal que aparece en todo fondo de inversión. No es burocracia — es la verdad más importante de las finanzas. Los fondos que más suben en un año dado son, estadísticamente, peores que la media en los años siguientes (regresión a la media). Comprar lo que ya subió mucho porque "está funcionando" es, con frecuencia, llegar tarde a la fiesta.
 >
-> El backtest sirve para descartar estrategias claramente malas, no para
-> identificar ganadores futuros.
+> El backtest sirve para descartar estrategias claramente malas, no para identificar ganadores futuros.
 
 ---
 
-*Álvaro lee esta lista y reconoce al menos tres errores que ya estaba a
-punto de cometer. Eso es exactamente para lo que sirve el paper trading:
-equivocarse gratis.*
+*Álvaro lee esta lista y reconoce al menos tres errores que ya estaba a punto de cometer. Eso es exactamente para lo que sirve el paper trading: equivocarse gratis.*
 
 ---
 
@@ -500,7 +603,7 @@ Verás que el sistema incluye 5 **cestas modelo** además de las tuyas:
 >
 > Las **Bandas de Bollinger** definen una "zona normal" alrededor del precio usando la desviación estándar. Cuando el precio toca la banda inferior (muy barato respecto a su media reciente), puede ser señal de compra. Cuando toca la banda superior, posible señal de venta.
 
-Compara el `/backtest 1y` de tu *Mi Apuesta* con el *Modelo RSI*: si tu cesta bate al modelo, has elegido buenos activos — la estrategia es la misma, así que la diferencia viene de tu selección. Si no lo bate, quizás hay activos más adecuados para esa estrategia.
+Compara el `/backtest 1y` de tu *Mi_Apuesta* con el *Modelo RSI*: si tu cesta bate al modelo, has elegido buenos activos — la estrategia es la misma, así que la diferencia viene de tu selección. Si no lo bate, quizás hay activos más adecuados para esa estrategia.
 
 ---
 
@@ -511,13 +614,13 @@ Compara el `/backtest 1y` de tu *Mi Apuesta* con el *Modelo RSI*: si tu cesta ba
 Para borrar una cesta, primero hay que cerrar todas sus posiciones. El bot **no permite eliminar cestas con posiciones abiertas** — es una protección deliberada para que no "hagas desaparecer" una posición sin cerrarla explícitamente:
 
 ```
-/sel Mi Ahorro
+/sel Mi_Ahorro
 /vende IBE.MC 20
 /vende SAN.MC 15
 /vende GLD 5
 /vende MSFT 3
 
-/sel Mi Apuesta
+/sel Mi_Apuesta
 /vende NVDA 5
 /vende AAPL 8
 ```
@@ -525,8 +628,8 @@ Para borrar una cesta, primero hay que cerrar todas sus posiciones. El bot **no 
 Ahora sí:
 
 ```
-/eliminarcesta Mi Ahorro
-/eliminarcesta Mi Apuesta
+/eliminarcesta Mi_Ahorro
+/eliminarcesta Mi_Apuesta
 ```
 
 ### Crea tu cesta real
@@ -544,7 +647,7 @@ Las alertas automáticas del sistema te notificarán cuando una estrategia gener
 ---
 
 ## ¿Y ahora qué?
-<img src="docs/img/guia/Alvaro_termina.png" alt="Álvaro" width="120" align="right">
+
 
 - **`/help`** — referencia rápida de todos los comandos
 - **[USER_MANUAL.md](USER_MANUAL.md)** — documentación completa con todos los detalles y ejemplos
@@ -552,6 +655,7 @@ Las alertas automáticas del sistema te notificarán cuando una estrategia gener
 
 ---
 
+<img src="docs/img/guia/Alvaro_termina.png" alt="Álvaro" width="120" align="right"> 
 
 *Álvaro cerró el tutorial con sus dos cestas de prueba eliminadas y una tercera — su cesta real — esperándole con €10.000 de capital y la estrategia que mejor encaja con su carácter. Ya no ve el dinero en la cuenta corriente como "ahorros seguros" — lo ve como poder adquisitivo que se erosiona cada año. La diferencia entre saberlo y actuar en consecuencia es exactamente lo que acabas de hacer.*
 

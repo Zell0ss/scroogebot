@@ -131,7 +131,7 @@ Muestra el detalle completo de una cesta: activos que la componen, miembros y ca
 **Ejemplo de salida:**
 ```
 🗂 Conservadora
-Estrategia: stop_loss | Perfil: low
+Estrategia: stop_loss | Stop-loss: 8.0% | Perfil: low
 Cash: 2.500,00€
 
 Assets:
@@ -145,38 +145,51 @@ Miembros:
 
 ---
 
-### `/estrategia <nombre_cesta> [nueva_estrategia]`
+### `/estrategia <nombre_cesta> [estrategia] [stop_loss_%]`
 
-**Sin segundo argumento:** muestra la estrategia actual de la cesta y la lista de estrategias disponibles.
+**Sin argumentos extra:** muestra la estrategia actual y el stop loss configurado.
 
 ```
 /estrategia Cesta Agresiva
 → 📊 Cesta Agresiva usa estrategia: ma_crossover
+  Stop-loss: 8.0% (desde precio de compra)
   Disponibles: stop_loss, ma_crossover, rsi, bollinger, safe_haven
 ```
 
-**Con segundo argumento:** cambia la estrategia. Solo el **OWNER** de la cesta puede hacerlo.
-
+**Cambiar estrategia** (solo OWNER):
 ```
 /estrategia Cesta Agresiva rsi
-→ ✅ Estrategia de Cesta Agresiva cambiada a rsi
 ```
+
+**Cambiar stop loss** (solo OWNER):
+```
+/estrategia Cesta Agresiva 10        ← establece stop loss al 10%
+/estrategia Cesta Agresiva 0         ← desactiva el stop loss
+```
+
+**Cambiar estrategia y stop loss a la vez** (solo OWNER):
+```
+/estrategia Cesta Agresiva rsi 8     ← estrategia RSI con stop loss al 8%
+```
+
+> El stop loss se aplica por encima de cualquier estrategia: si una posición cae ≥ el porcentaje configurado desde el precio de compra, el bot genera una alerta de venta automáticamente, independientemente de lo que diga la estrategia.
 
 ---
 
-### `/nuevacesta <nombre> <estrategia>`
+### `/nuevacesta <nombre> <estrategia> [stop_loss_%]`
 
 Crea una nueva cesta de paper trading. Cualquier usuario registrado puede crear una cesta; el creador se convierte automáticamente en **OWNER**.
 
 ```
-/nuevacesta TechGrowth rsi
-→ ✅ Cesta "TechGrowth" creada con estrategia rsi. Eres OWNER.
+/nuevacesta TechGrowth rsi          ← sin stop loss
+/nuevacesta TechGrowth rsi 8        ← con stop loss al 8%
 ```
 
-- El nombre puede tener varias palabras (el último token es siempre la estrategia).
-- Falla si ya existe una cesta con ese nombre.
+- El nombre puede tener varias palabras; la estrategia es siempre el penúltimo token (antes del % opcional).
+- El stop loss es opcional. Se puede configurar después con `/estrategia`.
+- Falla si ya existe una cesta activa con ese nombre.
 - Estrategias válidas: `stop_loss`, `ma_crossover`, `rsi`, `bollinger`, `safe_haven`.
-- La cesta se crea con €10.000 de cash inicial. Para añadir activos usa `/adduser` y opera con `/compra`.
+- La cesta se crea con €10.000 de cash inicial. Para añadir activos opera con `/compra`.
 
 ---
 
@@ -311,18 +324,20 @@ RSI (14): 62.4 — neutral ⚪
 
 ---
 
-### `/sizing <TICKER> [STOP_LOSS]`
+### `/sizing <TICKER> [STOP_LOSS [CAPITAL]]`
 
-Calcula el número de acciones a comprar aplicando position sizing con gestión de riesgo. Usa los parámetros del broker asociado a la cesta que contiene el ticker.
+Calcula el número de acciones a comprar aplicando position sizing con gestión de riesgo. Usa el broker de la cesta que contiene el ticker y el **cash de la cesta activa** (`/sel`) como capital base.
 
 ```
-/sizing SAN.MC           ← stop automático via ATR(14)×2
-/sizing SAN.MC 3.85      ← stop loss manual en €
-/sizing AAPL             ← ticker USD, convierte automáticamente a EUR
-/sizing AAPL 180         ← stop manual en USD
+/sizing SAN.MC              ← stop automático ATR(14)×2, capital de la cesta activa
+/sizing SAN.MC 3.85         ← stop loss manual en €, capital de la cesta activa
+/sizing AAPL                ← ticker USD, convierte automáticamente a EUR
+/sizing AAPL 180            ← stop manual en USD
+/sizing SAN.MC 3.85 8000    ← stop manual + capital explícito de €8.000
 ```
 
 **Muestra:**
+- Cesta activa y capital usado para el cálculo
 - Precio actual y stop loss (manual o ATR×2, con volatilidad si es automático)
 - Distancia al stop en € y %
 - Número de acciones y factor limitante (riesgo o posición máxima)
@@ -330,9 +345,9 @@ Calcula el número de acciones a comprar aplicando position sizing con gestión 
 - Comisiones del broker (compra + venta)
 - Riesgo real incluyendo comisiones
 
-**Parámetros de cartera:** capital €20.000 · riesgo máximo 0,75% (€150) · posición máxima 20% (€4.000)
+**Parámetros de riesgo:** riesgo máximo 0,75% del capital · posición máxima 20% del capital
 
-> Si el ticker no está en ninguna cesta, usa el broker `paper` como fallback. No ejecuta ninguna orden — es solo una calculadora.
+> El capital base es el `cash` de la cesta activa. Si no hay cesta activa, usa €20.000 como referencia. Si el ticker no está en ninguna cesta, usa el broker `paper` como fallback. No ejecuta ninguna orden — es solo una calculadora.
 
 ---
 
@@ -491,10 +506,10 @@ Las alertas no se repiten hasta que cambie el estado del activo.
 | `/vende <TICKER> <qty> [@cesta]` | Vender acciones | Registrado |
 | `/analiza <TICKER>` | Análisis técnico (RSI, SMA) | Registrado |
 | `/buscar <texto>` | Buscar tickers por nombre | Registrado |
-| `/sizing <TICKER> [STOP_LOSS]` | Position sizing con comisiones | Registrado |
+| `/sizing <TICKER> [STOP [CAPITAL]]` | Position sizing con capital de la cesta activa | Registrado |
 | `/backtest [período]` | Backtest de estrategias | Registrado |
-| `/estrategia <cesta> [estrategia]` | Ver o cambiar estrategia | Registrado / OWNER |
-| `/nuevacesta <nombre> <estrategia>` | Crear nueva cesta | Registrado |
+| `/estrategia <cesta> [estrategia] [%]` | Ver o cambiar estrategia / stop loss | Registrado / OWNER |
+| `/nuevacesta <nombre> <estrategia> [%]` | Crear nueva cesta (stop loss opcional) | Registrado |
 | `/eliminarcesta <nombre>` | Desactivar cesta | OWNER |
 | `/register <id> <user>` | Pre-registrar usuario | OWNER |
 | `/adduser <@user> <ROL> <cesta>` | Añadir usuario a cesta | OWNER |
