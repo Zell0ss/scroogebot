@@ -6,7 +6,7 @@
 
 ## Antes de empezar — La historia de Álvaro
 
-<img src="docs/img/guia/alvaro.jpg" alt="Álvaro" width="120" align="right">
+<img src="docs/img/guia/Alvaro_comienza.png" alt="Álvaro" width="120" align="right">
 
 Álvaro tiene 32 años, trabaja en Madrid y acaba de revisar su cuenta bancaria: €10.000 parados generando un 0,01% de interés anual. Mientras tanto, la inflación le come un 2-3% al año de poder adquisitivo. En términos reales, Álvaro está **perdiendo ~€250 al año sin hacer absolutamente nada**.
 
@@ -47,6 +47,7 @@ Una vez dentro, explora los comandos disponibles:
 ```
 /help
 ```
+![Comando help del bot](docs/img/guia/help.png)
 
 ---
 
@@ -81,7 +82,8 @@ Ahora vamos a encontrar cuatro activos para nuestra cesta conservadora. Usaremos
 <!-- 📸 Captura: /buscar iberdrola mostrando IBE.MC como primer resultado con nombre, exchange y tipo -->
 ![Resultado de /buscar iberdrola](docs/img/guia/buscar-ibe.png)
 
-El bot te devuelve **IBE.MC** — Iberdrola, empresa española de utilities (electricidad y gas). Las utilities son activos muy estables: poca volatilidad, buen dividendo histórico. Perfectas para una cesta conservadora.
+El bot te devuelve **IBE.MC** — Iberdrola, empresa española de utilities (electricidad y gas). Está varias veces en nuestras cestas modelo, es un activo muy común. 
+Las utilities son activos muy estables: poca volatilidad, buen dividendo histórico. Perfectas para una cesta conservadora.
 
 ```
 /buscar santander
@@ -153,6 +155,7 @@ Ves tus posiciones: cuántas acciones de cada activo y a qué precio medio las c
 ## Módulo 2 — Tu segunda cesta: *"Mi Apuesta"* 🚀
 
 ### 2.1 El dilema de Álvaro
+<img src="docs/img/guia/Alvaro_duda.png" alt="Álvaro" width="120" align="right">
 
 *Álvaro mira su cesta conservadora. Iberdrola y el oro no le van a hacer rico en poco tiempo. Pero le han dicho que NVIDIA ha multiplicado su precio varias veces en pocos años. ¿No estará dejando dinero sobre la mesa?*
 
@@ -199,18 +202,50 @@ Vamos a crear una segunda cesta más agresiva para ver la diferencia en la prác
 <!-- 📸 Captura: /analiza NVDA mostrando precio, RSI (probablemente alto) y SMA — contraste con IBE -->
 ![Análisis técnico de NVDA](docs/img/guia/analiza-nvda.png)
 
-Compara ahora con lo que viste antes en IBE.MC:
+El bot incluye ahora la línea **ATR (14)** — el porcentaje que oscila de media el activo cada día. Es la medida más directa de volatilidad que puedes leer sin salir del chat.
+
+Compara ahora la salida de `/analiza` entre los dos activos:
 
 | | IBE.MC (Iberdrola) | NVDA (NVIDIA) |
 |---|---|---|
-| Volatilidad diaria | Baja (~0,5-1%) | Alta (~2-4%) |
+| ATR (14) típico | `0.6% — volatilidad baja 🟢` | `3.2% — volatilidad alta 🔴` |
 | RSI típico | Oscila suavemente entre 40-60 | Puede alcanzar 80+ o caer a 20 |
 | Estrategia natural | Stop loss (proteger lo ganado) | RSI (aprovechar los extremos) |
 | Perfil inversor | Conservador | Tolerante al riesgo |
 
 *Si el RSI de NVDA está ahora en 72, la estrategia RSI **no habría comprado** — esperaría a que bajara a 30. Esto es exactamente lo que hace el bot automáticamente cuando las alertas están activas: vigila por ti.*
 
-### 2.6 ¿Cuánto comprar? Position sizing
+### 2.6 El problema oculto de la diversificación: correlación
+
+Álvaro mira su cesta *Mi Apuesta* satisfecho: tiene NVIDIA y Apple. Dos empresas distintas.
+Dos activos distintos. ¿Está diversificado?
+
+No del todo.
+
+> 📚 La **correlación** mide cómo se mueven dos activos entre sí. Va de -1 a +1:
+>
+> - **Correlación +1**: se mueven exactamente igual. Si uno cae un 5%, el otro también.
+>   Tener los dos no añade ninguna protección.
+> - **Correlación 0**: se mueven de forma independiente. La caída de uno no dice nada
+>   sobre el otro.
+> - **Correlación -1**: se mueven en sentido opuesto. Cuando uno cae, el otro sube.
+>   La diversificación perfecta (rara en la práctica).
+>
+> NVIDIA y Apple tienen una **correlación alta** (~0.7-0.8 históricamente): ambas son
+> tecnológicas americanas de gran capitalización. En una crisis del sector tech — como
+> la de 2022, cuando el Nasdaq cayó un 33% — caen juntas y al mismo tiempo.
+>
+> Por eso *Mi Ahorro* está mejor diversificada que parece: IBE.MC (utility europea),
+> SAN.MC (banca española), GLD (oro, correlación negativa con renta variable en crisis)
+> y MSFT (tech americana) tienen correlaciones mucho más bajas entre sí. Cuando las
+> tecnológicas caen, el oro típicamente sube. Cuando la banca europea sufre, las
+> utilities resisten mejor.
+>
+> **La lección práctica**: diversificar no es tener muchos activos — es tener activos
+> que no caigan todos a la vez por la misma razón.
+
+
+### 2.7 ¿Cuánto comprar? Position sizing
 
 Antes de invertir en algo volátil, la pregunta crucial no es "¿cuánto puede subir?" sino "¿cuánto puedo perder?"
 
@@ -219,6 +254,44 @@ Antes de invertir en algo volátil, la pregunta crucial no es "¿cuánto puede s
 ```
 
 > 📚 El **position sizing** (dimensionamiento de posición) calcula cuántas acciones comprar para que, si la operación sale mal y el stop loss se activa, la pérdida total no supere un porcentaje máximo de tu cartera (típicamente 0,5-1%). Es la diferencia entre un inversor disciplinado y alguien que se lo juega todo a una carta. El bot calcula el stop automáticamente usando la **volatilidad reciente del activo (ATR)**: cuanto más volátil sea, más lejos hay que poner el stop, y por tanto menos acciones puedes comprar manteniendo el riesgo controlado.
+
+---
+
+---
+
+## Interludio — Cuándo están abiertos los mercados 🕐
+
+Antes de que el bot te envíe tu primera alerta automática, un detalle práctico
+que evita confusiones:
+
+> 📚 Los mercados financieros tienen **horarios de apertura** distintos según el país.
+> Las cotizaciones solo se actualizan cuando el mercado correspondiente está abierto.
+> Fuera de ese horario, el precio que ves es el último precio de cierre — no refleja
+> lo que está pasando en ese momento.
+
+| Mercado | Horario (hora española peninsular) | Activos |
+|---|---|---|
+| **BME** (Bolsa Madrid) | 9:00 — 17:30 | IBE.MC, SAN.MC y otros `.MC` |
+| **NYSE / NASDAQ** | 15:30 — 22:00 | NVDA, AAPL, MSFT, GLD |
+| **LSE** (Londres) | 9:00 — 17:30 | Activos `.L` |
+
+En verano los horarios americanos se adelantan una hora por el cambio horario en EEUU.
+
+**Lo que esto significa para ti con el bot:**
+
+- Una alerta que llega a las 23:00 sobre un activo americano puede ser legítima —
+  el mercado todavía está abierto.
+- Una alerta sobre Iberdrola a las 20:00 no puede ejecutarse a precio de mercado —
+  BME ya cerró. El bot opera con el precio de Yahoo Finance, que fuera de horario
+  devuelve el último cierre.
+- Los fines de semana todos los mercados están cerrados. Las alertas que lleguen
+  entonces reflejan precios del viernes.
+
+> ⚠️ **Limitación actual**: el bot escanea posiciones cada 5 minutos
+> independientemente del horario de mercado. En una versión futura, el escáner
+> se pausará automáticamente fuera de horario. Por ahora, toma las alertas
+> nocturnas o de fin de semana con precaución — el precio de ejecución real
+> puede diferir del precio que desencadenó la señal.
 
 ---
 
@@ -252,6 +325,7 @@ La caída máxima desde un pico hasta el valle más profundo. Si es -35%, en alg
 Porcentaje de operaciones ganadoras. Un 40% de win rate puede ser completamente rentable si las ganancias son 3 veces mayores que las pérdidas. No busques ganar siempre — busca que las ganancias superen a las pérdidas en conjunto.
 
 ---
+<img src="docs/img/guia/Alvaro_la_lia.png" alt="Álvaro" width="120" align="right">
 
 *Álvaro compara: Mi Apuesta tiene mayor rentabilidad potencial pero un drawdown del -25%. Mi Ahorro tiene un drawdown del -7%. Decide que en la vida real usará una estrategia intermedia, y que antes de tocar dinero real necesita entender mejor su propio umbral de tolerancia al dolor.*
 
@@ -287,8 +361,126 @@ Lee los percentiles:
 *Álvaro ve que en el escenario p10, sus €10.000 quedarían en €7.600. Se pregunta: ¿podría vivir con esa pérdida? Sí — no es dinero del alquiler, es ahorro extra. Pero decide que no pondrá más del 20% de sus ahorros totales en Mi Apuesta. El 80% restante irá a Mi Ahorro. Eso es **gestión del riesgo real**: no evitar las apuestas audaces, sino limitarlas a lo que puedes permitirte perder.*
 
 ---
+---
 
-## Módulo 5 — Las Cestas Modelo del Sistema 🗂️
+## Módulo 5 — Los errores que vas a querer cometer (y no deberías) ⚠️
+
+*Álvaro lleva una hora aprendiendo. Tiene dos cestas, ha visto un backtest y
+una simulación Monte Carlo. Ahora es exactamente el momento más peligroso:
+sabe suficiente para sentirse seguro, pero no suficiente para saber lo que
+no sabe.*
+
+Estos son los errores más frecuentes — no en teoría, sino en la práctica real
+de inversores que empezaron exactamente donde tú estás ahora.
+
+---
+
+### Error 1 — Vender en el momento de pánico
+
+El backtest te mostró el **máximo drawdown**: esa caída del -25% en *Mi Apuesta*.
+Un número en pantalla parece manejable. Pero cuando es dinero real y llevas tres
+semanas viendo cómo tu cartera pierde valor cada día, la presión psicológica es
+completamente distinta.
+
+> 📚 Los estudios de comportamiento inversor (DALBAR, entre otros) muestran
+> consistentemente que el inversor medio obtiene bastante menos rentabilidad que
+> el fondo en el que invierte — precisamente porque compra tarde (cuando ya ha
+> subido mucho y la euforia es máxima) y vende pronto (cuando cae y el miedo
+> es máximo). La estrategia correcta y la psicología humana van en sentido opuesto.
+
+**Cómo practicarlo aquí**: cuando tu cesta de papel trading esté en negativo
+durante varios días seguidos, observa cómo te sientes. ¿Tienes ganas de
+liquidar? Ese impulso — en papel, sin consecuencias — es exactamente lo que
+tendrás que gestionar con dinero real.
+
+---
+
+### Error 2 — Overtrading: confundir actividad con rentabilidad
+
+La interfaz de comandos hace que operar sea muy fácil. `/compra`, `/vende` —
+dos segundos. Esa facilidad es una trampa.
+
+> 📚 Cada operación tiene un coste implícito: en un broker real hay comisiones,
+> spread bid-ask, y en algunos países impacto fiscal por cada plusvalía realizada.
+> Pero incluso en papel trading hay un coste invisible: **cada operación es una
+> decisión que puedes acertar o fallar**. Más operaciones = más oportunidades de
+> equivocarse. Warren Buffett tiene una frase conocida: su horizonte de inversión
+> favorito es "para siempre". No es una exageración filosófica — es matemática
+> del interés compuesto.
+
+Una señal de alerta personal: si llevas más de 10 operaciones en una semana
+en una cesta pequeña, es probable que estés operando por ansiedad, no por
+análisis.
+
+---
+
+### Error 3 — Sobreponderar lo que conoces (sesgo de familiaridad)
+
+Es tentador comprar Iberdrola porque conoces la marca, o NVIDIA porque usas
+sus tarjetas gráficas, o Apple porque tienes un iPhone. El conocimiento del
+producto no es conocimiento financiero de la empresa.
+
+> 📚 El **sesgo de familiaridad** hace que los inversores sobreponderen empresas
+> de su país, su sector laboral o su vida cotidiana. Los empleados de Enron
+> tenían el 60% de sus ahorros para la jubilación en acciones de Enron.
+> Conocían la empresa mejor que nadie. Perdieron todo cuando quebró.
+>
+> Conocer una empresa como consumidor te dice algo sobre su producto.
+> No te dice nada sobre su valoración, su deuda, sus márgenes o su
+> competencia.
+
+**El antídoto**: antes de comprar algo "porque lo conoces", usa `/analiza`
+y mira los números. Si el RSI está en 78 y llevas meses sin ver una
+corrección, "conocer la empresa" no es motivo suficiente para comprar ahora.
+
+---
+
+### Error 4 — Ignorar el tamaño de la posición
+
+Has visto `/sizing` en el Módulo 2. Es el comando menos glamuroso del bot
+y probablemente el más importante.
+
+> 📚 Puedes tener razón en tu análisis — el activo sube exactamente como
+> predijiste — y aun así perder dinero si tenías una posición demasiado grande
+> en algo que bajó antes de subir. El **position sizing** no es sobre ser
+> conservador: es sobre sobrevivir el camino hasta tener razón.
+>
+> El error clásico del principiante no es equivocarse en la dirección —
+> es no poder aguantar una posición correcta porque el tamaño era tan grande
+> que el drawdown temporal le obligó a salir antes de que el precio se recuperara.
+
+Regla práctica: ninguna posición individual debería representar más del
+10-15% de tu cartera total. Con activos volátiles como NVDA, considera
+bajar ese límite al 5-8%.
+
+---
+
+### Error 5 — Perseguir rentabilidades pasadas
+
+El backtest de *Mi Apuesta* muestra buenos resultados el último año. NVIDIA
+subió mucho. La estrategia RSI funcionó bien. Todo esto es verdad.
+
+Y es completamente irrelevante para predecir lo que pasará el año que viene.
+
+> 📚 **"Rentabilidades pasadas no garantizan rentabilidades futuras"** es la
+> advertencia legal que aparece en todo fondo de inversión. No es burocracia —
+> es la verdad más importante de las finanzas. Los fondos que más suben en un
+> año dado son, estadísticamente, peores que la media en los años siguientes
+> (regresión a la media). Comprar lo que ya subió mucho porque "está funcionando"
+> es, con frecuencia, llegar tarde a la fiesta.
+>
+> El backtest sirve para descartar estrategias claramente malas, no para
+> identificar ganadores futuros.
+
+---
+
+*Álvaro lee esta lista y reconoce al menos tres errores que ya estaba a
+punto de cometer. Eso es exactamente para lo que sirve el paper trading:
+equivocarse gratis.*
+
+---
+
+## Módulo 6 — Las Cestas Modelo del Sistema 🗂️
 
 ```
 /cestas
@@ -352,12 +544,14 @@ Las alertas automáticas del sistema te notificarán cuando una estrategia gener
 ---
 
 ## ¿Y ahora qué?
+<img src="docs/img/guia/Alvaro_termina.png" alt="Álvaro" width="120" align="right">
 
 - **`/help`** — referencia rápida de todos los comandos
 - **[USER_MANUAL.md](USER_MANUAL.md)** — documentación completa con todos los detalles y ejemplos
 - Cuando tengas confianza con el paper trading, replica en tu broker real la estrategia que mejor funcione
 
 ---
+
 
 *Álvaro cerró el tutorial con sus dos cestas de prueba eliminadas y una tercera — su cesta real — esperándole con €10.000 de capital y la estrategia que mejor encaja con su carácter. Ya no ve el dinero en la cuenta corriente como "ahorros seguros" — lo ve como poder adquisitivo que se erosiona cada año. La diferencia entre saberlo y actuar en consecuencia es exactamente lo que acabas de hacer.*
 

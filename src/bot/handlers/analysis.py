@@ -2,6 +2,7 @@ import logging
 
 import pandas as pd
 import ta.momentum
+import ta.volatility
 from telegram import Update
 from telegram.ext import ContextTypes, CommandHandler
 
@@ -29,6 +30,14 @@ async def cmd_analiza(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         sma20 = close.rolling(20).mean().iloc[-1]
         sma50 = close.rolling(50).mean().iloc[-1]
 
+        high = ohlcv.data["High"]
+        low = ohlcv.data["Low"]
+        atr_series = ta.volatility.AverageTrueRange(
+            high=high, low=low, close=close, window=14
+        ).average_true_range()
+        atr_val = atr_series.iloc[-1] if (atr_series is not None and not atr_series.empty and pd.notna(atr_series.iloc[-1])) else None
+        atr_pct = (atr_val / float(price.price) * 100) if (atr_val is not None and float(price.price) > 0) else None
+
         lines = [
             f"📊 *Análisis: {ticker}*",
             f"💰 Precio: {price.price:.2f} {price.currency}",
@@ -55,6 +64,16 @@ async def cmd_analiza(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             else:
                 rsi_label = "neutral ⚪"
             lines.append(f"RSI (14): {rsi_val:.1f} — {rsi_label}")
+
+        if atr_pct is not None:
+            if atr_pct < 0.8:
+                atr_label = "baja 🟢"
+            elif atr_pct < 2.0:
+                atr_label = "moderada 🟡"
+            else:
+                atr_label = "alta 🔴"
+            lines.append(f"ATR (14): {atr_pct:.1f}% — volatilidad {atr_label}")
+
         lines.append(f"\n🔍 [Finviz](https://finviz.com/quote.ashx?t={ticker}) · [Yahoo](https://finance.yahoo.com/quote/{ticker})")
         await msg.edit_text("\n".join(lines), parse_mode="Markdown")
     except Exception as e:
