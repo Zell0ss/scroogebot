@@ -100,3 +100,34 @@ def test_profile_desfavorable_low_sharpe():
 def test_profile_moderado():
     r = _make_result(prob_loss=0.25, sharpe_median=0.6)
     assert "moderado" in _profile_line(r).lower()
+
+
+from src.backtest.montecarlo import MonteCarloAnalyzer
+from src.strategies.stop_loss import StopLossStrategy
+
+
+def test_run_asset_integration():
+    """Integration test: StopLoss strategy on 5 simulations of 10 days."""
+    hist_df = _make_hist_df(120)  # 120 bars, enough for warmup pool
+
+    rng = np.random.default_rng(99)
+    analyzer = MonteCarloAnalyzer()
+    result = analyzer.run_asset(
+        ticker="TEST",
+        strategy=StopLossStrategy(),
+        strategy_name="stop_loss",
+        hist_df=hist_df,
+        n_simulations=5,
+        horizon=10,
+        rng=rng,
+        seed=99,
+    )
+
+    assert isinstance(result, AssetMonteCarloResult)
+    assert result.ticker == "TEST"
+    assert result.n_simulations == 5
+    assert result.horizon == 10
+    assert result.seed == 99
+    assert 0.0 <= result.prob_loss <= 1.0
+    assert result.var_95 <= result.return_median  # VaR is always <= median
+    assert result.cvar_95 <= result.var_95        # CVaR <= VaR by definition

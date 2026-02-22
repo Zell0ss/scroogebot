@@ -5,6 +5,8 @@ from decimal import Decimal
 import numpy as np
 import pandas as pd
 
+from src.strategies.base import Strategy
+
 logger = logging.getLogger(__name__)
 
 LOOKBACK = 60          # bars of real history used as warmup context per simulation
@@ -82,3 +84,96 @@ def _profile_line(r: AssetMonteCarloResult) -> str:
     if r.prob_loss > _PROB_LOSS_HIGH or r.sharpe_median < _SHARPE_LOW:
         return "🔴 Perfil desfavorable, considerar ajustes"
     return "⚠️ Perfil moderado, revisar riesgo"
+
+
+class MonteCarloAnalyzer:
+    """Runs a strategy over N bootstrapped price paths and aggregates metrics."""
+
+    def __init__(self):
+        self.simulator = MonteCarloSimulator()
+
+    def run_asset(
+        self,
+        ticker: str,
+        strategy: Strategy,
+        strategy_name: str,
+        hist_df: pd.DataFrame,
+        n_simulations: int,
+        horizon: int,
+        rng: np.random.Generator,
+        seed: int,
+    ) -> AssetMonteCarloResult:
+        import vectorbt as vbt
+
+        warmup_df = hist_df.tail(LOOKBACK).copy()
+        paths = self.simulator.generate_paths(hist_df, n_simulations, horizon, rng)
+
+        returns: list[float] = []
+        max_dds: list[float] = []
+        sharpes: list[float] = []
+        win_rates: list[float] = []
+
+        for path in paths:
+            path_df = path.to_frame("Close")
+
+            entries = pd.Series(False, index=path.index)
+            exits = pd.Series(False, index=path.index)
+
+            for i in range(len(path)):
+                current_price = Decimal(str(path.iloc[i]))
+
+                # Build context: warmup tail + synthetic bars up to current
+                if i < LOOKBACK:
+                    ctx = pd.concat([warmup_df.iloc[-(LOOKBACK - i):], path_df.iloc[:i]])
+                else:
+                    ctx = path_df.iloc[i - LOOKBACK:i]
+
+                if len(ctx) < 2:
+                    continue
+
+                try:
+                    signal = strategy.evaluate(ticker, ctx, current_price)
+                except Exception as exc:
+                    logger.debug("Strategy raised on bar %d for %s: %s", i, ticker, exc)
+                    continue
+
+                if signal:
+                    if signal.action == "BUY":
+                        entries.iloc[i] = True
+                    elif signal.action == "SELL":
+                        exits.iloc[i] = True
+
+            pf = vbt.Portfolio.from_signals(
+                path, entries, exits, init_cash=10_000, freq="1D"
+            )
+            stats = pf.stats()
+
+            returns.append(float(stats.get("Total Return [%]", 0) or 0))
+            max_dds.append(float(stats.get("Max Drawdown [%]", 0) or 0))
+            sharpes.append(float(stats.get("Sharpe Ratio", 0) or 0))
+            win_rates.append(float(stats.get("Win Rate [%]", 0) or 0))
+
+        arr = np.array(returns)
+        var_95 = float(np.percentile(arr, 5))
+        tail = arr[arr <= var_95]
+        cvar_95 = float(np.mean(tail)) if len(tail) > 0 else var_95
+
+        return AssetMonteCarloResult(
+            ticker=ticker,
+            n_simulations=n_simulations,
+            horizon=horizon,
+            strategy_name=strategy_name,
+            seed=seed,
+            return_median=float(np.percentile(arr, 50)),
+            return_mean=float(np.mean(arr)),
+            return_p10=float(np.percentile(arr, 10)),
+            return_p90=float(np.percentile(arr, 90)),
+            return_p05=float(np.percentile(arr, 5)),
+            prob_loss=float(np.mean(arr < 0)),
+            max_dd_median=float(np.percentile(max_dds, 50)),
+            max_dd_p95=float(np.percentile(max_dds, 95)),
+            sharpe_median=float(np.percentile(sharpes, 50)),
+            win_rate_median=float(np.percentile(win_rates, 50)),
+            var_95=var_95,
+            cvar_95=cvar_95,
+        )
