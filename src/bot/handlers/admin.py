@@ -1,12 +1,22 @@
 import logging
+from decimal import Decimal
 from telegram import Update
 from telegram.ext import ContextTypes, CommandHandler
 from sqlalchemy import select
 
 from src.db.base import async_session_factory
 from sqlalchemy import desc
-from src.db.models import User, Basket, BasketMember, CommandLog, Watchlist
+from src.db.models import User, Basket, BasketMember, CommandLog, Watchlist, Position
 from src.bot.audit import log_command
+
+STRATEGY_MAP = {
+    "stop_loss": None,
+    "ma_crossover": None,
+    "rsi": None,
+    "bollinger": None,
+    "safe_haven": None,
+}
+_STRATEGY_LIST = ", ".join(STRATEGY_MAP.keys())
 
 logger = logging.getLogger(__name__)
 
@@ -274,6 +284,168 @@ async def cmd_logs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
 
+async def cmd_estrategia(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Usage: /estrategia <cesta> [nueva_estrategia]"""
+    if not update.message or not context.args:
+        await update.message.reply_text(
+            f"Uso: /estrategia <cesta> [nueva\\_estrategia]\nDisponibles: {_STRATEGY_LIST}"
+        )
+        return
+
+    parts = list(context.args)
+    # If last token is a known strategy, it's a change request
+    if parts[-1] in STRATEGY_MAP and len(parts) >= 2:
+        new_strategy: str | None = parts.pop()
+    elif parts[-1] not in STRATEGY_MAP and len(parts) >= 2:
+        # Last token looks like an intended strategy but is invalid
+        new_strategy = parts[-1]
+        if new_strategy not in STRATEGY_MAP:
+            await update.message.reply_text(
+                f"Estrategia '{new_strategy}' no válida. Disponibles: {_STRATEGY_LIST}"
+            )
+            return
+    else:
+        new_strategy = None
+
+    basket_name = " ".join(parts if new_strategy is not None else parts)
+
+    async with async_session_factory() as session:
+        caller_result = await session.execute(select(User).where(User.tg_id == update.effective_user.id))
+        caller = caller_result.scalar_one_or_none()
+        if not caller:
+            await update.message.reply_text("Usa /start primero.")
+            return
+
+        basket_result = await session.execute(
+            select(Basket).where(Basket.name == basket_name, Basket.active == True)
+        )
+        basket = basket_result.scalar_one_or_none()
+        if not basket:
+            await update.message.reply_text(f"Cesta '{basket_name}' no encontrada.")
+            return
+
+        if new_strategy is None:
+            await update.message.reply_text(
+                f"📊 *{basket_name}* usa estrategia: `{basket.strategy}`\n"
+                f"Disponibles: {_STRATEGY_LIST}",
+                parse_mode="Markdown",
+            )
+            return
+
+        owner_check = await session.execute(
+            select(BasketMember).where(
+                BasketMember.basket_id == basket.id,
+                BasketMember.user_id == caller.id,
+                BasketMember.role == "OWNER",
+            )
+        )
+        if not owner_check.scalar_one_or_none():
+            await update.message.reply_text("Solo el OWNER puede cambiar la estrategia.")
+            return
+
+        basket.strategy = new_strategy
+        await session.commit()
+        await update.message.reply_text(
+            f"✅ Estrategia de *{basket_name}* cambiada a `{new_strategy}`",
+            parse_mode="Markdown",
+        )
+
+
+async def cmd_nuevacesta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Usage: /nuevacesta <nombre> <estrategia>"""
+    if not update.message or not context.args or len(context.args) < 2:
+        await update.message.reply_text(
+            f"Uso: /nuevacesta <nombre> <estrategia>\nDisponibles: {_STRATEGY_LIST}"
+        )
+        return
+
+    strategy = context.args[-1]
+    basket_name = " ".join(context.args[:-1])
+
+    if strategy not in STRATEGY_MAP:
+        await update.message.reply_text(
+            f"Estrategia '{strategy}' no válida. Disponibles: {_STRATEGY_LIST}"
+        )
+        return
+
+    async with async_session_factory() as session:
+        caller_result = await session.execute(select(User).where(User.tg_id == update.effective_user.id))
+        caller = caller_result.scalar_one_or_none()
+        if not caller:
+            await update.message.reply_text("Usa /start primero.")
+            return
+
+        dup_result = await session.execute(select(Basket).where(Basket.name == basket_name))
+        if dup_result.scalar_one_or_none():
+            await update.message.reply_text(f"Ya existe una cesta con el nombre '{basket_name}'.")
+            return
+
+        basket = Basket(name=basket_name, strategy=strategy, active=True, cash=Decimal("10000"))
+        session.add(basket)
+        await session.flush()
+        session.add(BasketMember(basket_id=basket.id, user_id=caller.id, role="OWNER"))
+        await session.commit()
+
+    await update.message.reply_text(
+        f'✅ Cesta "{basket_name}" creada con estrategia `{strategy}`. Eres OWNER.',
+        parse_mode="Markdown",
+    )
+
+
+async def cmd_eliminarcesta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Usage: /eliminarcesta <nombre>"""
+    if not update.message or not context.args:
+        await update.message.reply_text("Uso: /eliminarcesta <nombre>")
+        return
+
+    basket_name = " ".join(context.args)
+
+    async with async_session_factory() as session:
+        caller_result = await session.execute(select(User).where(User.tg_id == update.effective_user.id))
+        caller = caller_result.scalar_one_or_none()
+        if not caller:
+            await update.message.reply_text("Usa /start primero.")
+            return
+
+        basket_result = await session.execute(
+            select(Basket).where(Basket.name == basket_name, Basket.active == True)
+        )
+        basket = basket_result.scalar_one_or_none()
+        if not basket:
+            await update.message.reply_text(f"Cesta '{basket_name}' no encontrada.")
+            return
+
+        owner_check = await session.execute(
+            select(BasketMember).where(
+                BasketMember.basket_id == basket.id,
+                BasketMember.user_id == caller.id,
+                BasketMember.role == "OWNER",
+            )
+        )
+        if not owner_check.scalar_one_or_none():
+            await update.message.reply_text("Solo el OWNER puede eliminar una cesta.")
+            return
+
+        positions_result = await session.execute(
+            select(Position).where(
+                Position.basket_id == basket.id,
+                Position.quantity > 0,
+            )
+        )
+        open_positions = positions_result.scalars().all()
+        if open_positions:
+            tickers = ", ".join(p.ticker for p in open_positions)
+            await update.message.reply_text(
+                f"❌ No se puede eliminar: *{basket_name}* tiene posiciones abiertas ({tickers}).",
+                parse_mode="Markdown",
+            )
+            return
+
+        basket.active = False
+        await session.commit()
+        await update.message.reply_text(f"✅ Cesta \"{basket_name}\" desactivada.")
+
+
 def get_handlers():
     return [
         CommandHandler("start", cmd_start),
@@ -282,4 +454,7 @@ def get_handlers():
         CommandHandler("watchlist", cmd_watchlist),
         CommandHandler("addwatch", cmd_addwatch),
         CommandHandler("logs", cmd_logs),
+        CommandHandler("estrategia", cmd_estrategia),
+        CommandHandler("nuevacesta", cmd_nuevacesta),
+        CommandHandler("eliminarcesta", cmd_eliminarcesta),
     ]
