@@ -6,7 +6,7 @@ from telegram.ext import ContextTypes, CommandHandler
 from sqlalchemy import select
 
 from src.db.base import async_session_factory
-from src.db.models import Basket, BasketAsset, Asset
+from src.db.models import Basket, BasketAsset, Asset, Position
 from src.data.yahoo import YahooDataProvider
 from src.backtest.montecarlo import MonteCarloAnalyzer, AssetMonteCarloResult, _profile_line
 from src.strategies.stop_loss import StopLossStrategy
@@ -139,6 +139,16 @@ async def cmd_montecarlo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             .where(BasketAsset.basket_id == basket.id, BasketAsset.active == True)
         )
         assets = assets_result.scalars().all()
+
+        if not assets:
+            # Fall back to currently held positions (personal baskets)
+            pos_result = await session.execute(
+                select(Asset)
+                .join(Position, Position.asset_id == Asset.id)
+                .where(Position.basket_id == basket.id, Position.quantity > 0)
+                .distinct()
+            )
+            assets = pos_result.scalars().all()
 
         if not assets:
             await msg.delete()
