@@ -482,7 +482,7 @@ Para Mi_Apuesta_jmc (que intuyo que es la cartera más agresiva/especulativa): R
 ### 4.2 Simular Mi_Apuesta
 
 ```
-/montecarlo Mi_Apuesta
+/montecarlo Mi_Apuesta_jmc
 ```
 
 <!-- 📸 Captura: /montecarlo Mi_Apuesta mostrando distribución con percentiles p10/p50/p90 -->
@@ -496,8 +496,60 @@ Lee los percentiles:
 | **p50** | Escenario mediano — el resultado más frecuente en las simulaciones. |
 | **p90** | Escenario optimista — el 10% de mejores simulaciones. Tu techo probable. |
 
+### 4.3 Leer el resultado completo — ejemplo real
 
-*Álvaro ve que en el escenario p10, sus €10.000 quedarían en €7.600. Se pregunta: ¿podría vivir con esa pérdida? Sí — no es dinero del alquiler, es ahorro extra. Pero decide que no pondrá más del 20% de sus ahorros totales en Mi_Apuesta. El 80% restante irá a Mi_Ahorro. Eso es **gestión del riesgo real**: no evitar las apuestas audaces, sino limitarlas a lo que puedes permitirte perder.*
+Así se ve un Monte Carlo real de una cesta RSI con NVDA y AAPL a 90 días:
+
+```
+NVDA
+  Rentabilidad
+    Mediana:          +0.0%
+    Rango 80%:        -3.1% a +20.8%
+    Peor caso (5%):   -10.7%  |  Prob. pérdida: 16%
+  Riesgo
+    VaR 95%: -10.7%  |  CVaR 95%: -21.8%
+    Max DD mediano: 0.0%  |  Max DD peor (5%): 23.1%
+  Calidad
+    Sharpe mediano: 0.00  |  Win rate mediano: 0%
+  🔴 Perfil desfavorable, considerar ajustes
+```
+
+Esto puede parecer alarmante, pero tiene una explicación lógica. Línea a línea:
+
+**Mediana +0.0% y Win rate 0%** — RSI es una estrategia *selectiva*: solo actúa cuando el indicador llega a extremos (RSI < 30 o > 70). En muchos de los 90 días simulados, esos extremos simplemente no ocurren y la estrategia no opera — la cartera está en cash, retorno = 0%. El win rate 0% no significa que pierda siempre; significa que en la mayoría de simulaciones cortas no hay operaciones que contar.
+
+**Rango 80%: -3.1% a +20.8% (asimetría positiva)** — cuando RSI SÍ genera señal en NVDA, suele ser comprando una caída en un activo de tendencia alcista. El resultado es muy asimétrico: la bajada típica es pequeña (-3%), pero la subida potencial es grande (+20%). Eso es exactamente lo que busca RSI en activos volátiles con tendencia.
+
+**Prob. pérdida 16%** — solo en 16 de cada 100 escenarios se pierde dinero. Es un número razonable: la estrategia tiene más probabilidad de acertar que de perder.
+
+**VaR 95%: -10.7% / CVaR 95%: -21.8%** — estas son las métricas más importantes para gestión del riesgo:
+- El *VaR 95%* dice: "en el 95% de los escenarios, no perderás más del 10.7%"
+- El *CVaR 95%* dice: "pero en ese 5% de peores casos, perderás de media un 21.8%"
+- Para un fondo de €10.000 en NVDA, eso es ~€2.180 de pérdida en escenario catastrófico. ¿Puedes asumir eso?
+
+**Max DD mediano: 0.0% / peor caso: 23.1%** — el drawdown mide la caída desde el máximo. Mediana 0% confirma que en muchos escenarios no se entra nunca (o se entra y sale sin pérdida). El 23.1% en el peor caso es el "pain number": en el escenario catastrófico, en algún momento habrás estado un 23% por debajo del pico.
+
+**🔴 Perfil desfavorable** — se activa cuando Sharpe y Win rate son bajos (en este caso porque la mayoría de simulaciones son de "sin operaciones"). No significa que la estrategia sea mala — significa que en ventanas cortas de 90 días **no produce resultados consistentes**. RSI necesita tiempo para generar ciclos completos de compra/venta; con 90 días muchas veces no le da tiempo.
+
+> 📚 Conclusión práctica: los resultados del Monte Carlo para RSI/90 días dicen "en el escenario típico, la estrategia no actúa y no ganas ni pierdes; pero si actúa, tiene más upside que downside". Aumenta el horizonte (`/montecarlo Mi_Apuesta rsi 250`) para ver cómo evoluciona con más tiempo.
+
+---
+
+**NVDA vs AAPL — ¿cuál tiene mejor perfil?**
+
+Comparando los dos activos de la misma simulación:
+
+| Métrica | NVDA | AAPL |
+|---------|------|------|
+| Mediana | 0.0% | 0.0% |
+| p90 (optimista) | **+20.8%** | +10.9% |
+| p10 (pesimista) | -3.1% | **-5.7%** |
+| Prob. pérdida | **16%** | 20% |
+| CVaR 95% | -21.8% | **-12.0%** |
+
+NVDA tiene más potencial alcista (+20.8% vs +10.9%) pero también más riesgo extremo (CVaR -21.8% vs -12%). AAPL tiene más probabilidad de perder (20% vs 16%) pero las pérdidas son más contenidas. Esto refleja fielmente la naturaleza de cada activo: NVDA es más volátil, AAPL más estable.
+
+*Álvaro ve que en el escenario p10, sus €10.000 en NVDA quedarían en €9.690 (pérdida leve). Pero en el 5% de peores casos podría perder €2.180. Se pregunta: ¿podría vivir con esa pérdida? Sí — no es dinero del alquiler, es ahorro extra. Pero decide que no pondrá más del 20% de sus ahorros totales en Mi_Apuesta. El 80% restante irá a Mi_Ahorro. Eso es **gestión del riesgo real**: no evitar las apuestas audaces, sino limitarlas a lo que puedes permitirte perder.*
 
 ---
 ---
