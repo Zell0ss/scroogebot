@@ -16,6 +16,7 @@ from src.bot.handlers.admin import get_handlers as admin_handlers
 from src.bot.handlers.backtest import get_handlers as backtest_handlers
 from src.bot.handlers.sizing import get_handlers as sizing_handlers
 from src.bot.handlers.search import get_handlers as search_handlers
+from src.bot.handlers.help import get_handlers as help_handlers
 from src.alerts.engine import AlertEngine
 from src.bot.audit import log_command
 from src.metrics import start_metrics_server
@@ -142,6 +143,8 @@ async def run() -> None:
     for handler in sizing_handlers():
         app.add_handler(handler)
     for handler in search_handlers():
+        app.add_handler(handler)
+    for handler in help_handlers():          # ← LAST: fallback catches unknown commands
         app.add_handler(handler)
 
     app.add_handler(CallbackQueryHandler(handle_alert_callback, pattern="^alert:"))
