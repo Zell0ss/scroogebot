@@ -2,7 +2,7 @@
 
 ## Status: Parts 1, 2, 3 + extras COMPLETE ✅
 
-All features implemented, tested (144/144 pass), committed and pushed to
+All features implemented, tested (152/152 pass), committed and pushed to
 https://github.com/Zell0ss/scroogebot
 
 ---

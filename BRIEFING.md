@@ -196,10 +196,10 @@ Key relationships:
 - Market-hours-aware scheduler
 - systemd service file
 
-**Known limitations**:
-- StopLossStrategy uses `data["Close"].iloc[0]` (3-month window open) as reference, NOT `Position.avg_price` — signals based on lookback period, not actual cost basis
-- No market-hours guard: scheduler scans even when markets are closed
-- No tests for handlers or AlertEngine (manual testing only per plan)
+**Previously known limitations (now fixed)**:
+- ~~StopLossStrategy uses `data["Close"].iloc[0]` (period open) as reference, NOT `Position.avg_price`~~ — fixed in e3774e5 / f7f663e: strategy now uses `avg_price` when provided, AlertEngine passes `pos.avg_price`
+- ~~No market-hours guard: confirm callback could execute at stale Friday-close price on weekend~~ — fixed in bea5550: `handle_alert_callback` blocks execution when market is closed; stale PENDING alerts auto-expire in f8d59b9
+- No tests for handlers or AlertEngine (manual testing only per plan) — partially resolved: `test_alert_engine_stoploss.py` and `test_bot_callback.py` added
 
 ---
 
