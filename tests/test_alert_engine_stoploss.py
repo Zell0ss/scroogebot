@@ -178,3 +178,37 @@ async def test_stoploss_overrides_strategy_buy_signal():
     alert_arg = session_cm.__aenter__.return_value.add.call_args[0][0]
     assert alert_arg.signal == "SELL"
     assert "Stop-loss" in alert_arg.reason
+
+
+@pytest.mark.asyncio
+async def test_scan_passes_avg_price_to_strategy():
+    """AlertEngine passes pos.avg_price as the 4th arg to strategy.evaluate()."""
+    basket = _make_basket(stop_loss_pct=None, strategy="rsi")
+    pos, asset = _make_position(avg_price=150.0)
+    current_price = Decimal("160.0")
+
+    session_cm = _make_session([(pos, asset)])
+    price_mock = MagicMock()
+    price_mock.price = current_price
+    hist_mock = MagicMock(data=MagicMock())
+
+    engine = AlertEngine(telegram_app=None)
+    mock_cls = _mock_strategy(return_value=None)
+
+    with (
+        patch("src.alerts.engine.async_session_factory", return_value=session_cm),
+        patch.object(engine.data, "get_current_price", return_value=price_mock),
+        patch.object(engine.data, "get_historical", return_value=hist_mock),
+        patch("src.alerts.engine.is_market_open", return_value=True),
+        patch.dict("src.alerts.engine.STRATEGY_MAP", {"rsi": mock_cls}),
+    ):
+        await engine._scan_basket(basket)
+
+    instance = mock_cls.return_value
+    call_args = instance.evaluate.call_args
+    # 4th positional arg (index 3) or keyword 'avg_price' must be pos.avg_price
+    passed_avg_price = (
+        call_args.kwargs.get("avg_price")
+        or (call_args.args[3] if len(call_args.args) > 3 else None)
+    )
+    assert passed_avg_price == pos.avg_price

@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 from sqlalchemy import select
 
@@ -80,7 +81,7 @@ class AlertEngine:
                         continue
                     price_obj = self.data.get_current_price(asset.ticker)
                     historical = self.data.get_historical(asset.ticker, period="3mo", interval="1d")
-                    signal = strategy.evaluate(asset.ticker, historical.data, price_obj.price)
+                    signal = strategy.evaluate(asset.ticker, historical.data, price_obj.price, pos.avg_price)
 
                     # Stop-loss layer: position-based, independent of entry strategy.
                     # Overrides any signal (including BUY) when position is down >= threshold.
