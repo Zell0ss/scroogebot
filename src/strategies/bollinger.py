@@ -13,7 +13,7 @@ class BollingerStrategy(Strategy):
         self.period = int(cfg["period"])
         self.std_dev = float(cfg["std_dev"])
 
-    def evaluate(self, ticker: str, data: pd.DataFrame, current_price: Decimal) -> Signal | None:
+    def evaluate(self, ticker: str, data: pd.DataFrame, current_price: Decimal, avg_price: Decimal | None = None) -> Signal | None:
         if len(data) < self.period:
             return None
 

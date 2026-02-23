@@ -14,7 +14,7 @@ class RSIStrategy(Strategy):
         self.oversold = float(cfg["oversold"])
         self.overbought = float(cfg["overbought"])
 
-    def evaluate(self, ticker: str, data: pd.DataFrame, current_price: Decimal) -> Signal | None:
+    def evaluate(self, ticker: str, data: pd.DataFrame, current_price: Decimal, avg_price: Decimal | None = None) -> Signal | None:
         if len(data) < self.period + 2:
             return None
 

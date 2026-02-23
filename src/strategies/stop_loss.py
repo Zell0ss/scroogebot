@@ -10,13 +10,23 @@ class StopLossStrategy(Strategy):
         self.stop_loss_pct = Decimal(str(cfg["stop_loss_pct"])) / 100
         self.take_profit_pct = Decimal(str(cfg["take_profit_pct"])) / 100
 
-    def evaluate(self, ticker: str, data: pd.DataFrame, current_price: Decimal) -> Signal | None:
+    def evaluate(
+        self,
+        ticker: str,
+        data: pd.DataFrame,
+        current_price: Decimal,
+        avg_price: Decimal | None = None,
+    ) -> Signal | None:
         if len(data) < 2:
             return None
-        open_price = Decimal(str(data["Close"].iloc[0]))
-        if open_price == 0:
+        reference = (
+            avg_price
+            if avg_price and avg_price > 0
+            else Decimal(str(data["Close"].iloc[0]))
+        )
+        if reference == 0:
             return None
-        change = (current_price - open_price) / open_price
+        change = (current_price - reference) / reference
 
         if change <= -self.stop_loss_pct:
             return Signal(

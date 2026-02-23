@@ -21,7 +21,7 @@ class SafeHavenStrategy(Strategy):
         )
         self.drawdown_threshold = Decimal(str(cfg.get("drawdown_pct", cfg.get("stop_loss_pct", 8)))) / 100
 
-    def evaluate(self, ticker: str, data: pd.DataFrame, current_price: Decimal) -> Signal | None:
+    def evaluate(self, ticker: str, data: pd.DataFrame, current_price: Decimal, avg_price: Decimal | None = None) -> Signal | None:
         if ticker.upper() in SAFE_TICKERS:
             return None
         if len(data) < 2:

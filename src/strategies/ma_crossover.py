@@ -10,7 +10,7 @@ class MACrossoverStrategy(Strategy):
         self.fast = cfg["fast_period"]
         self.slow = cfg["slow_period"]
 
-    def evaluate(self, ticker: str, data: pd.DataFrame, current_price: Decimal) -> Signal | None:
+    def evaluate(self, ticker: str, data: pd.DataFrame, current_price: Decimal, avg_price: Decimal | None = None) -> Signal | None:
         if len(data) < self.slow + 1:
             return None
         close = data["Close"]

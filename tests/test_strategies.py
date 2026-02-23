@@ -81,3 +81,24 @@ def test_safe_haven_skips_safe_assets():
     df = make_df(prices)
     signal = strategy.evaluate("GLD", df, Decimal("50"))
     assert signal is None
+
+
+def test_stop_loss_uses_avg_price_when_provided():
+    """StopLoss fires based on avg_price, not the first Close of the window."""
+    strategy = StopLossStrategy()
+    # period-open is 100 (no drop) but avg_price is 200 (big drop from actual buy)
+    df = make_df([100.0] * 61)
+    signal = strategy.evaluate("AAPL", df, Decimal("170"), avg_price=Decimal("200"))
+    # 170 vs 200 = -15% drop, above 8% stop-loss threshold
+    assert signal is not None
+    assert signal.action == "SELL"
+    assert "Stop-loss" in signal.reason
+
+
+def test_stop_loss_falls_back_to_period_open_when_no_avg_price():
+    """When avg_price is None, StopLoss falls back to data['Close'].iloc[0]."""
+    strategy = StopLossStrategy()
+    df = make_df([100.0] * 61)
+    signal = strategy.evaluate("AAPL", df, Decimal("88"))  # 12% from period open
+    assert signal is not None
+    assert signal.action == "SELL"
