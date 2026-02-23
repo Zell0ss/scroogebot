@@ -17,6 +17,7 @@ from src.bot.handlers.backtest import get_handlers as backtest_handlers
 from src.bot.handlers.sizing import get_handlers as sizing_handlers
 from src.bot.handlers.search import get_handlers as search_handlers
 from src.bot.handlers.montecarlo import get_handlers as montecarlo_handlers
+from src.bot.handlers.estado import get_handlers as estado_handlers
 from src.bot.handlers.help import get_handlers as help_handlers
 from src.alerts.engine import AlertEngine
 from src.bot.audit import log_command
@@ -155,6 +156,8 @@ async def run() -> None:
     for handler in search_handlers():
         app.add_handler(handler)
     for handler in montecarlo_handlers():
+        app.add_handler(handler)
+    for handler in estado_handlers():
         app.add_handler(handler)
     for handler in help_handlers():          # ← LAST: fallback catches unknown commands
         app.add_handler(handler)

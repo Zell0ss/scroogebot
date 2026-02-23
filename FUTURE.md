@@ -60,25 +60,12 @@ scroogebot_commands_total{command="/compra",success="true"} 3.0
 
 ## Near-term: quick wins
 
-### 1. `/estado` Telegram command
+### 1. `/estado` Telegram command ✅ DONE (2026-02-23)
 
-A read-only command that pulls the current metric values directly from the
-running counters — no Prometheus server needed:
-
-```
-/estado
-
-📊 ScroogeBot — estado actual
-
-🔄 Escaneos: 60 completados · 240 omitidos (mercados cerrados)
-⚠️  Alertas generadas hoy: 4 (rsi·BUY x2, safe_haven·SELL x2)
-⏱️  Último escaneo: 0.34 s
-🟢 NYSE: abierto · 🔴 IBEX: cerrado · 🟢 LSE: abierto
-📋 Comandos hoy: /compra x3 · /vende x1 · /backtest x2
-```
-
-Implementation: read from prometheus_client's internal registry via
-`REGISTRY.get_sample_value()` — no HTTP round-trip needed.
+Implemented in `src/bot/handlers/estado.py`. Reads from prometheus_client
+`REGISTRY` directly — no HTTP round-trip. Shows scans, alert breakdown by
+strategy·signal, average scan duration, market status (via `is_market_open()`),
+and command counts. All counters are cumulative since last bot restart.
 
 ---
 

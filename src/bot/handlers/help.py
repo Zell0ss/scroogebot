@@ -52,6 +52,7 @@ COMMAND_LIST = [
 
     # --- Admin ---
     ("__header__", "", "🛠 *Admin*"),
+    ("estado", "", "Estado del bot: escaneos, alertas, mercados (desde arranque)"),
     ("register", "tg\\_id username", "Pre-registrar usuario (OWNER)"),
     ("adduser", "@user ROL cesta", "Añadir usuario a cesta (OWNER)"),
     ("watchlist", "", "Ver tu watchlist personal"),
