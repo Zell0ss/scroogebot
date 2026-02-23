@@ -20,7 +20,9 @@ from src.bot.handlers.montecarlo import get_handlers as montecarlo_handlers
 from src.bot.handlers.help import get_handlers as help_handlers
 from src.alerts.engine import AlertEngine
 from src.bot.audit import log_command
+from src.db.base import async_session_factory
 from src.metrics import start_metrics_server
+from src.scheduler.market_hours import is_market_open
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +36,6 @@ async def handle_alert_callback(update: Update, context) -> None:
 
     action, alert_id = parts[1], int(parts[2])
 
-    from src.db.base import async_session_factory
     from src.db.models import Alert, Asset, Basket, BasketMember, Position, User
     from src.data.yahoo import YahooDataProvider
     from src.orders.paper import PaperTradingExecutor
@@ -76,6 +77,14 @@ async def handle_alert_callback(update: Update, context) -> None:
             return
 
         if action == "confirm":
+            # Guard: do not execute at stale prices when market is closed
+            if asset.market and not is_market_open(asset.market):
+                await query.edit_message_text(
+                    f"❌ Mercado {asset.market} cerrado ahora.\n"
+                    "La alerta sigue activa — confírmala cuando abra el mercado,\n"
+                    "o usa /compra para ejecutar manualmente."
+                )
+                return
             try:
                 provider = YahooDataProvider()
                 price = provider.get_current_price(asset.ticker).price
