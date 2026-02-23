@@ -34,7 +34,7 @@ class PortfolioBacktestResult:
     annualized_return_pct: float
     sharpe_ratio: float
     max_drawdown_pct: float
-    n_trades: int            # trades executed in the cash-sharing grouped simulation
+    n_trades: int            # sum of trades across all per-asset simulations
     benchmark_return_pct: float   # equal-weight B&H average
     # Per-asset breakdown
     per_asset: dict[str, BacktestResult]
@@ -131,21 +131,13 @@ class BacktestEngine:
         entries_df = pd.DataFrame(entries_dict).reindex(close_df.index).fillna(False)
         exits_df   = pd.DataFrame(exits_dict).reindex(close_df.index).fillna(False)
 
-        # Step 6: Run vectorbt grouped portfolio (one call for aggregate stats)
         sl_kwargs = {"sl_stop": stop_loss_pct / 100} if stop_loss_pct else {}
-        pf = vbt.Portfolio.from_signals(
-            close_df, entries_df, exits_df,
-            init_cash=10_000, freq="1D",
-            group_by=True, cash_sharing=True,
-            **sl_kwargs,
-        )
-        agg_stats = pf.stats()
 
         def _safe(val, default: float = 0.0) -> float:
             v = float(val) if val is not None else default
             return v if math.isfinite(v) else default
 
-        # Step 7: Compute per-asset BacktestResult
+        # Step 6: Compute per-asset BacktestResult
         per_ticker_cash = 10_000 / len(active_tickers)
         per_asset: dict[str, BacktestResult] = {}
         for t in active_tickers:
@@ -180,31 +172,31 @@ class BacktestEngine:
                 benchmark_return_pct=bh_single,
             )
 
-        # Step 8: Compute benchmark = equal-weight average of per-ticker B&H returns
+        # Step 7: Compute benchmark = equal-weight average of per-ticker B&H returns
         bh_returns = [
             float((close_df[t].iloc[-1] - close_df[t].iloc[0]) / close_df[t].iloc[0] * 100)
             for t in active_tickers
         ]
         portfolio_bh = sum(bh_returns) / len(bh_returns)
 
-        # Step 9: Compute aggregate annualized return
-        total_return_agg = _safe(agg_stats.get("Total Return [%]"))
-        n_days_agg = max(len(close_df), 1)
-        annualized_agg = (
-            ((1 + total_return_agg / 100) ** (252 / n_days_agg) - 1) * 100
-            if total_return_agg > -100
-            else -100.0
-        )
+        # Step 8: Aggregate portfolio stats mathematically from per-asset results
+        # (avoids the cash_sharing bug where the first ticker consumes all capital)
+        n_assets = len(per_asset)
+        total_return_agg = sum(r.total_return_pct for r in per_asset.values()) / n_assets
+        annualized_agg = sum(r.annualized_return_pct for r in per_asset.values()) / n_assets
+        sharpe_agg = sum(r.sharpe_ratio for r in per_asset.values()) / n_assets
+        max_dd_agg = max(r.max_drawdown_pct for r in per_asset.values())
+        n_trades_agg = sum(r.n_trades for r in per_asset.values())
 
-        # Step 10: Return PortfolioBacktestResult with all fields populated
+        # Step 9: Return PortfolioBacktestResult with all fields populated
         return PortfolioBacktestResult(
             period=period,
             strategy_name=strategy_name,
             total_return_pct=total_return_agg,
             annualized_return_pct=annualized_agg,
-            sharpe_ratio=_safe(agg_stats.get("Sharpe Ratio")),
-            max_drawdown_pct=_safe(agg_stats.get("Max Drawdown [%]")),
-            n_trades=int(agg_stats.get("Total Trades", 0)),
+            sharpe_ratio=sharpe_agg,
+            max_drawdown_pct=max_dd_agg,
+            n_trades=n_trades_agg,
             benchmark_return_pct=portfolio_bh,
             per_asset=per_asset,
         )
