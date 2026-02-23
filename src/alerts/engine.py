@@ -74,6 +74,7 @@ class AlertEngine:
             positions = result.all()
 
             new_alerts: list[tuple[Alert, str]] = []
+            expired_alerts: list[Alert] = []
             for pos, asset in positions:
                 try:
                     if asset.market and not is_market_open(asset.market):
@@ -99,10 +100,7 @@ class AlertEngine:
                                 confidence=Decimal("0.99"),
                             )
 
-                    if not signal or signal.action not in ("BUY", "SELL"):
-                        continue
-
-                    # Deduplicate: skip if a PENDING alert already exists
+                    # Deduplicate / expire stale alerts
                     existing = await session.execute(
                         select(Alert).where(
                             Alert.basket_id == basket.id,
@@ -110,7 +108,16 @@ class AlertEngine:
                             Alert.status == "PENDING",
                         )
                     )
-                    if existing.scalar_one_or_none():
+                    existing_alert = existing.scalar_one_or_none()
+                    if existing_alert:
+                        if not signal or signal.action not in ("BUY", "SELL"):
+                            # Condition no longer holds — expire the stale alert
+                            existing_alert.status = "EXPIRED"
+                            existing_alert.resolved_at = datetime.utcnow()
+                            expired_alerts.append(existing_alert)
+                        continue
+
+                    if not signal or signal.action not in ("BUY", "SELL"):
                         continue
 
                     alert = Alert(
@@ -132,6 +139,8 @@ class AlertEngine:
                 await session.flush()  # assign IDs before notify
                 for alert, ticker in new_alerts:
                     await self._notify(alert, basket.name, ticker)
+
+            if new_alerts or expired_alerts:
                 await session.commit()
 
     async def _notify(self, alert: Alert, basket_name: str, ticker: str) -> None:

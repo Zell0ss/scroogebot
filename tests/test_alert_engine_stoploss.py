@@ -212,3 +212,105 @@ async def test_scan_passes_avg_price_to_strategy():
         or (call_args.args[3] if len(call_args.args) > 3 else None)
     )
     assert passed_avg_price == pos.avg_price
+
+
+@pytest.mark.asyncio
+async def test_scan_expires_stale_pending_alert():
+    """When strategy signal is None (condition gone), an existing PENDING alert is EXPIRED."""
+    basket = _make_basket(stop_loss_pct=None, strategy="rsi")
+    pos, asset = _make_position(avg_price=100.0)
+    current_price = Decimal("100.0")
+
+    # Build existing PENDING alert as a real mock we can inspect
+    existing_alert = MagicMock()
+    existing_alert.status = "PENDING"
+
+    pos_result = MagicMock()
+    pos_result.all.return_value = [(pos, asset)]
+
+    dedup_result = MagicMock()
+    dedup_result.scalar_one_or_none.return_value = existing_alert
+
+    session = MagicMock()
+    session.execute = AsyncMock(side_effect=[pos_result, dedup_result])
+    session.add = MagicMock()
+    session.flush = AsyncMock()
+    session.commit = AsyncMock()
+
+    session_cm = MagicMock()
+    session_cm.__aenter__ = AsyncMock(return_value=session)
+    session_cm.__aexit__ = AsyncMock(return_value=False)
+
+    price_mock = MagicMock()
+    price_mock.price = current_price
+
+    engine = AlertEngine(telegram_app=None)
+    mock_cls = _mock_strategy(return_value=None)  # <- condition gone: signal = None
+
+    with (
+        patch("src.alerts.engine.async_session_factory", return_value=session_cm),
+        patch.object(engine.data, "get_current_price", return_value=price_mock),
+        patch.object(engine.data, "get_historical", return_value=MagicMock(data=MagicMock())),
+        patch("src.alerts.engine.is_market_open", return_value=True),
+        patch.dict("src.alerts.engine.STRATEGY_MAP", {"rsi": mock_cls}),
+    ):
+        await engine._scan_basket(basket)
+
+    # Stale alert must have been expired
+    assert existing_alert.status == "EXPIRED"
+    # And persisted
+    session.commit.assert_called_once()
+    # No new alert was added
+    session.add.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_scan_keeps_pending_when_condition_still_holds():
+    """When signal is not None and PENDING exists, dedup runs — alert stays PENDING, no new alert."""
+    basket = _make_basket(stop_loss_pct=None, strategy="rsi")
+    pos, asset = _make_position(avg_price=100.0)
+    current_price = Decimal("80.0")
+
+    existing_alert = MagicMock()
+    existing_alert.status = "PENDING"
+
+    pos_result = MagicMock()
+    pos_result.all.return_value = [(pos, asset)]
+
+    dedup_result = MagicMock()
+    dedup_result.scalar_one_or_none.return_value = existing_alert
+
+    session = MagicMock()
+    session.execute = AsyncMock(side_effect=[pos_result, dedup_result])
+    session.add = MagicMock()
+    session.flush = AsyncMock()
+    session.commit = AsyncMock()
+
+    session_cm = MagicMock()
+    session_cm.__aenter__ = AsyncMock(return_value=session)
+    session_cm.__aexit__ = AsyncMock(return_value=False)
+
+    price_mock = MagicMock()
+    price_mock.price = current_price
+
+    sell_signal = Signal(action="SELL", ticker="SAN.MC", price=current_price,
+                         reason="still below RSI threshold", confidence=0.7)
+
+    engine = AlertEngine(telegram_app=None)
+    mock_cls = _mock_strategy(return_value=sell_signal)  # <- condition still holds
+
+    with (
+        patch("src.alerts.engine.async_session_factory", return_value=session_cm),
+        patch.object(engine.data, "get_current_price", return_value=price_mock),
+        patch.object(engine.data, "get_historical", return_value=MagicMock(data=MagicMock())),
+        patch("src.alerts.engine.is_market_open", return_value=True),
+        patch.dict("src.alerts.engine.STRATEGY_MAP", {"rsi": mock_cls}),
+    ):
+        await engine._scan_basket(basket)
+
+    # Alert was NOT expired (condition still holds)
+    assert existing_alert.status == "PENDING"
+    # No new alert created (dedup)
+    session.add.assert_not_called()
+    # No commit (nothing changed)
+    session.commit.assert_not_called()
