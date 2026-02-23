@@ -39,6 +39,7 @@ python scroogebot.py
 
 - 🎬 [Estrategias de ScroogeBot](docs/video/Estrategias_de_ScroogeBot.mp4) — overview of the 5 built-in strategies
 - 🎬 [Guía para invertir en España](docs/video/Guía_para_invertir_en_España.mp4) — investing basics for Spanish-speaking users
+- 🎬 [Fondos, fondos indexados y etfs](docs/video/Fondos,_ETFs_y_Fiscalidad.mp4) — investing basics for Spanish-speaking users
 
 ## Requirements
 

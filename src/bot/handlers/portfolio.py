@@ -40,6 +40,7 @@ async def cmd_valoracion(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 val = await _engine.get_valuation(session, basket.id)
                 tickers = ",".join(p.ticker for p in val.positions)
                 finviz_url = f"https://finviz.com/screener.ashx?v=111&t={tickers}" if tickers else ""
+                yahoo_url = f"https://finance.yahoo.com/quotes/{tickers}/" if tickers else ""
                 sign = lambda v: "+" if v >= 0 else ""
                 lines = [
                     f"📊 `{val.basket_name}` — {datetime.now().strftime('%d %b %Y %H:%M')}",
@@ -56,7 +57,7 @@ async def cmd_valoracion(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     )
                 lines += ["─" * 33, f"💵 Cash disponible: {_fmt(val.cash)}€"]
                 if finviz_url:
-                    lines.append(f"\n🔍 [Detalle Finviz]({finviz_url})")
+                    lines.append(f"\n🔍 [Finviz]({finviz_url})  |  [Yahoo Finance]({yahoo_url})")
                 await msg.edit_text("\n".join(lines), parse_mode="Markdown")
             except Exception as e:
                 logger.error(f"Valuation error basket {basket.id}: {e}")

@@ -80,72 +80,84 @@ Bull markets. Cada año que el mercado sube un 20%, el conservador pierde esa op
 
 ---
 
-### 📡 RSI *(Relative Strength Index)*
+### 2.1 Indicadores de Activo
+![alt text](docs/img/guia/analiza-nvda.png)
+
+---
+#### 📡 RSI *(Relative Strength Index)*
 **La fiebre del activo.** Va de 0 a 100. Por encima de 70: el activo tiene fiebre, todos lo quieren, cuidado con quemarse. Por debajo de 30: el activo está tiritando, nadie lo quiere, posible ganga. Entre 30 y 70: temperatura normal, sin señal clara.
 
 ---
 
-### 🔊 ATR *(Average True Range)*
+#### 🔊 ATR *(Average True Range)*
 **El vecino ruidoso.** Mide cuánto mete ruido el activo un día normal. Iberdrola tiene un ATR del 1.7% — vecino tranquilo. NVIDIA tiene un ATR del 3-4% — el que pone música hasta las 3. Cuanto mayor el ATR, más lejos tienes que poner el stop para que la volatilidad normal no lo active por accidente.
 
 ---
 
-### 📐 SMA20 / SMA50 *(Simple Moving Average)*
+#### 📐 SMA20 / SMA50 *(Simple Moving Average)*
 **El retrovisor suavizado.** En lugar de mirar el precio de hoy (que salta), miras el promedio de los últimos 20 o 50 días. Si el precio está por encima de ambas medias, la tendencia es alcista. Si la SMA20 supera a la SMA50, el corto plazo está más fuerte que el largo — el momentum está acelerando.
 
 ---
+### 2.2 Métricas de Cartera en BackTest y Montecarlo
+![alt text](docs/img/guia/backtest.png)
+*backtest*
 
-### ⚖️ Sharpe Ratio
+![alt text](docs/img/guia/montecarlo.png)
+*montecarlo*
+
+---
+#### ⚖️ Sharpe Ratio
 **La rentabilidad por unidad de sufrimiento.** Dos carteras con la misma rentabilidad anual no son iguales si una lo consiguió con subidas y bajadas del 20% y la otra con oscilaciones del 5%. El Sharpe divide la rentabilidad entre la volatilidad. Por encima de 1.0 es bueno. Por encima de 1.5 es excelente. Un Sharpe bajo significa que ganas, pero te da mucho miedo por el camino.
 
 ---
 
-### 🕳️ Max Drawdown
+#### 🕳️ Max Drawdown
 **El valle de lágrimas.** La caída máxima desde un pico hasta el punto más bajo antes de recuperarse. Si el backtest muestra -35%, en algún momento habrías visto tu cartera perder un 35% de valor — y habrías tenido que aguantar sin vender. La pregunta no es si puedes aguantar matemáticamente. Es si puedes aguantar psicológicamente con dinero real y el contador marcando pérdidas cada mañana.
 
 ---
 
-### 🎯 Win Rate
-**Cuántas veces aciertas la dirección.** Un 40% de win rate puede ser completamente rentable si cuando aciertas ganas el triple de lo que pierdes cuando fallas. No busques ganar siempre — busca que las ganancias sean asimétricamente mayores que las pérdidas. El mejor tirador del oeste falla muchos disparos. Lo que importa es a quién da cuando no falla.
+#### 🎯 Win Rate
+**Cuántas veces aciertas la dirección.** Un 40% de win rate puede ser completamente rentable si cuando aciertas ganas el triple de lo que pierdes cuando fallas. No busques ganar siempre — busca que las ganancias sean asimétricamente mayores que las pérdidas. El mejor tirador del oeste falla muchos disparos. Lo que importa es a quién da cuando no falla. EL win rate solo mide que has vendido mas caro que el precio de compra-> Acertaste, vaquero!
 
 ---
 
-### 🧮 Alpha (α)
+#### 🧮 Alpha (α) -solo backtest
 **Lo que añade (o resta) tu estrategia respecto a no hacer nada.** Si el backtest dice α: +4%, tu estrategia batió al mercado por 4 puntos. Si dice α: -8%, habrías ganado más simplemente comprando y olvidándote. El alpha es el veredicto: ¿valió la pena la complejidad?
 
 ---
 
-### 🛋️ B&H *(Buy & Hold)*
+#### 🛋️ B&H *(Buy & Hold)* -solo backtest
 **El sofá.** Compras y no tocas nada. Ni alertas, ni estrategias, ni señales. Sorprendentemente difícil de batir a largo plazo. El backtest siempre lo muestra como referencia porque es la alternativa más honesta: si no superas el sofá, el sofá es la estrategia correcta.
 
 ---
 
-### 🌡️ VaR *(Value at Risk)*
+#### 🌡️ VaR *(Value at Risk)* -solo montecarlo
 **El suelo del 95%.** Si el VaR al 95% es -10.7%, significa: en el 95% de los escenarios, no perderás más del 10.7%. Dicho al revés: hay un 5% de probabilidad de que pierdas más. Es el suelo probable, no el suelo absoluto.
 
 ---
 
-### 🔥 CVaR *(Conditional Value at Risk)*
+#### 🔥 CVaR *(Conditional Value at Risk)* -solo montecarlo
 **Lo que pasa en ese 5% malo.** El CVaR responde a "y si estoy en ese 5% de peores casos, ¿cuánto pierdo de media?". Si el CVaR es -21.8%, en los escenarios catastróficos pierdes de media un 21.8%. Es el número que debes mirar antes de decidir cuánto dinero real estás dispuesto a poner en juego.
 
 ---
-
-### 🎲 Monte Carlo
+### 2.3 Los tests
+---
+#### 🎲 Monte Carlo
 **Mil versiones paralelas de ti mismo.** En lugar de decirte "ganarás X", el bot simula 100 posibles futuros basados en la volatilidad histórica del activo y te muestra la distribución: el 10% de peores casos, el resultado más frecuente, el 10% de mejores casos. No elimina la incertidumbre — la cuantifica. Es la herramienta más honesta para hablar del futuro.
 
 ---
 
-### ⏪ Backtest
+#### ⏪ Backtest
 **El viaje en el tiempo.** Descarga los precios históricos y simula qué habría pasado si hubieras aplicado tu estrategia el año pasado. **Advertencia de viajero temporal**: el pasado no se repite de forma idéntica. El backtest sirve para descartar estrategias claramente malas, no para garantizar que las buenas lo seguirán siendo.
 
 ---
 
-### 🎒 Position Sizing
+#### 🎒 Position Sizing
 **Cuánto peso puedes cargar sin romperte la espalda.** Calcula el máximo de acciones que puedes comprar para que, si el stop salta y la operación sale mal, no pierdas más del 0.75% de tu cartera total. El error clásico del principiante no es equivocarse de dirección — es cargar tanto peso que cuando el terreno se complica, tiene que tirar la mochila antes de llegar a la cima.
 
 ---
 
-### 🧱 Stop Loss *(como parámetro de cesta)*
+#### 🧱 Stop Loss *(como parámetro de cesta)*
 **La trampilla de emergencia.** Independiente de la estrategia que uses, si activas el stop loss de cesta (por ejemplo al 8%), el bot vigilará que ninguna posición caiga más de ese porcentaje desde lo que pagaste. Si cae, alerta de venta automática — sin importar lo que diga el RSI o las medias móviles. Es la red de seguridad de la red de seguridad.
 
 ---
