@@ -6,6 +6,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ---
 
+## [Unreleased] — 2026-02-23
+
+### Changed
+- **`/backtest` now operates at portfolio level**: `BacktestEngine.run()` accepts `list[str]` tickers, runs vectorbt with `cash_sharing=True, group_by=True` (shared 10k EUR pool), returns `PortfolioBacktestResult` (aggregate + per-asset breakdown). Output split into CARTERA (portfolio aggregate stats) and DESGLOSE (per-ticker detail with win rate).
+- Per-asset stats use proportional `init_cash = 10_000 / n_tickers` to match the shared-cash capital allocation
+
+---
+
 ## [Unreleased] — 2026-02-22
 
 ### Added

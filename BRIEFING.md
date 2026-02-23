@@ -97,16 +97,20 @@ scroogebot/
 │   │   ├── bollinger.py   # BollingerStrategy
 │   │   └── safe_haven.py  # SafeHavenStrategy
 │   ├── alerts/engine.py   # AlertEngine (scan → signal → notify → commit)
+│   ├── backtest/
+│   │   ├── engine.py      # BacktestEngine.run(tickers, strategy, ...) → PortfolioBacktestResult
+│   │   └── montecarlo.py  # MonteCarloAnalyzer
 │   └── bot/
 │       ├── bot.py         # Application wiring + scheduler + callback handler
-│       └── handlers/      # portfolio, orders, baskets, analysis, admin
-└── tests/                 # 13 tests: config, data, orders, strategies
+│       └── handlers/      # portfolio, orders, baskets, analysis, admin, backtest, montecarlo
+└── tests/                 # 152 tests
 ```
 
 **Key modules**:
 - **`alerts/engine.py`**: Core automation. Each basket scan runs in its own session. Notify-before-commit ensures no orphan PENDING alerts. STRATEGY_MAP maps basket.strategy string to concrete class.
 - **`strategies/`**: Clean ABC — implement `evaluate(ticker, data, price, avg_price=None) → Signal | None`. `avg_price` is the position's actual purchase price; `StopLossStrategy` uses it, others ignore it. Adding a strategy = one file + one line in STRATEGY_MAP.
 - **`orders/paper.py`**: `buy/sell(session, basket_id, asset_id, user_id, ticker, qty, price, triggered_by="MANUAL")` — updates cash, position avg_price, inserts Order row.
+- **`backtest/engine.py`**: `BacktestEngine.run(tickers: list[str], strategy, strategy_name, period, stop_loss_pct) → PortfolioBacktestResult`. Synchronous (vectorbt); called via `run_in_executor`. Runs portfolio-level simulation with `cash_sharing=True, group_by=True`. Returns aggregate stats + `per_asset: dict[str, BacktestResult]` for per-ticker breakdown.
 
 ---
 
@@ -182,22 +186,19 @@ Key relationships:
 
 **Version**: 0.1.0 | **Last update**: February 2026
 
-✅ **Implemented** (Parts 1 & 2):
+✅ **Implemented** (Parts 1, 2 & 3 partial):
 - Full DB schema + Alembic migration + seeder
 - YahooDataProvider (price + OHLCV)
 - PortfolioEngine with EUR FX conversion
 - PaperTradingExecutor (buy/sell with cash/position tracking)
 - All bot commands (portfolio, orders, baskets, analysis, admin, watchlist)
-- StopLossStrategy + MACrossoverStrategy
-- AlertEngine + APScheduler with per-basket session isolation
+- StopLossStrategy + MACrossoverStrategy + RSIStrategy + BollingerStrategy + SafeHavenStrategy
+- AlertEngine + APScheduler with per-basket session isolation + market-hours guard
 - Inline keyboard alert confirmations (confirm → execute trade, reject → dismiss)
 - OWNER/MEMBER role system
-
-📋 **Part 3 planned** (see `docs/plans/2026-02-21-part3-backtest-advanced.md`):
-- vectorbt backtest engine + `/backtest` command
-- RSIStrategy + BollingerBandsStrategy + SafeHavenStrategy
-- Market-hours-aware scheduler
-- systemd service file
+- **Portfolio-level backtest** (`/backtest`): `BacktestEngine.run(tickers)` with shared cash, CARTERA + DESGLOSE output
+- MonteCarloAnalyzer (`/montecarlo`), position sizing (`/sizing`), ticker search (`/buscar`)
+- `stop_loss_pct` as per-basket risk layer (independent of entry strategy)
 
 **Previously known limitations (now fixed)**:
 - ~~StopLossStrategy uses `data["Close"].iloc[0]` (period open) as reference, NOT `Position.avg_price`~~ — fixed in e3774e5 / f7f663e: strategy now uses `avg_price` when provided, AlertEngine passes `pos.avg_price`
@@ -245,9 +246,10 @@ User taps ✅ → bot executes sell at live price, edits message ✅
 - Session isolation pattern (one session per basket scan) is intentional and important
 - The notify-before-commit decision is a deliberate trade-off against the conventional commit-then-notify
 
-**Pending decisions for Part 3**:
-- vectorbt backtest: sync API in an async bot — needs `run_in_executor` or process pool
-- Market hours: per-exchange timezone handling (NYSE/LSE/BME all different)
+**Pending decisions / remaining Part 3**:
+- ~~vectorbt backtest: sync API in an async bot~~ — resolved: `run_in_executor` (ThreadPoolExecutor)
+- ~~Market hours~~ — resolved: `is_market_open(asset.market)` guard in AlertEngine scan + callback
+- systemd service file
 
 ---
 
