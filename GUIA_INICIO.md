@@ -377,11 +377,13 @@ En verano los horarios americanos se adelantan una hora por el cambio horario en
 - Una alerta sobre Iberdrola a las 20:00 no puede ejecutarse a precio de mercado — BME ya cerró. El bot opera con el precio de Yahoo Finance, que fuera de horario  devuelve el último cierre.
 - Los fines de semana todos los mercados están cerrados. Las alertas que lleguen entonces reflejan precios del viernes.
 
-> ⚠️ **Limitación actual**: el bot escanea posiciones cada 5 minutos
-> independientemente del horario de mercado. En una versión futura, el escáner
-> se pausará automáticamente fuera de horario. Por ahora, toma las alertas
-> nocturnas o de fin de semana con precaución — el precio de ejecución real
-> puede diferir del precio que desencadenó la señal.
+> ✅ El bot respeta los horarios de mercado: el escáner se salta automáticamente
+> cuando todos los mercados están cerrados, y omite cada activo individualmente
+> cuando su mercado específico está cerrado. Además, si recibes una alerta del
+> viernes y pulsas ✅ el sábado, el bot te avisará de que el mercado está cerrado
+> y la alerta quedará pendiente hasta que puedas confirmarla en horario de mercado.
+> Las alertas cuya condición haya desaparecido (el precio se ha recuperado desde
+> el viernes) se marcan automáticamente como expiradas en el siguiente escaneo.
 
 ---
 

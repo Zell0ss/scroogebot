@@ -92,7 +92,10 @@ scroogebot/
 │   ├── strategies/
 │   │   ├── base.py        # Signal dataclass + Strategy ABC
 │   │   ├── stop_loss.py   # StopLossStrategy
-│   │   └── ma_crossover.py # MACrossoverStrategy
+│   │   ├── ma_crossover.py # MACrossoverStrategy
+│   │   ├── rsi.py         # RSIStrategy
+│   │   ├── bollinger.py   # BollingerStrategy
+│   │   └── safe_haven.py  # SafeHavenStrategy
 │   ├── alerts/engine.py   # AlertEngine (scan → signal → notify → commit)
 │   └── bot/
 │       ├── bot.py         # Application wiring + scheduler + callback handler
@@ -102,7 +105,7 @@ scroogebot/
 
 **Key modules**:
 - **`alerts/engine.py`**: Core automation. Each basket scan runs in its own session. Notify-before-commit ensures no orphan PENDING alerts. STRATEGY_MAP maps basket.strategy string to concrete class.
-- **`strategies/`**: Clean ABC — implement `evaluate(ticker, data, price) → Signal | None`. Adding a strategy = one file + one line in STRATEGY_MAP.
+- **`strategies/`**: Clean ABC — implement `evaluate(ticker, data, price, avg_price=None) → Signal | None`. `avg_price` is the position's actual purchase price; `StopLossStrategy` uses it, others ignore it. Adding a strategy = one file + one line in STRATEGY_MAP.
 - **`orders/paper.py`**: `buy/sell(session, basket_id, asset_id, user_id, ticker, qty, price, triggered_by="MANUAL")` — updates cash, position avg_price, inserts Order row.
 
 ---
@@ -156,7 +159,7 @@ Key relationships:
 - `Asset` 1→N `Position`, `Order`, `Alert`, `BasketAsset`
 - `User` 1→N `Order`, `BasketMember`, `Watchlist`
 - `Position`: (basket_id, asset_id) unique — tracks quantity + avg_price
-- `Alert`: status ∈ {PENDING, CONFIRMED, REJECTED}; strategy + signal + price + reason
+- `Alert`: status ∈ {PENDING, CONFIRMED, REJECTED, EXPIRED}; strategy + signal + price + reason. EXPIRED = condition cleared before user confirmed.
 
 ---
 
