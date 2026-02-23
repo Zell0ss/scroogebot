@@ -15,6 +15,12 @@ class Signal:
 
 class Strategy(ABC):
     @abstractmethod
-    def evaluate(self, ticker: str, data: pd.DataFrame, current_price: Decimal) -> Signal | None:
+    def evaluate(
+        self,
+        ticker: str,
+        data: pd.DataFrame,
+        current_price: Decimal,
+        avg_price: Decimal | None = None,
+    ) -> Signal | None:
         """Return a Signal or None (hold)."""
         ...
