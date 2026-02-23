@@ -82,14 +82,12 @@ class BacktestEngine:
             {t: ohlcv_dict[t].data["Close"] for t in tickers}, axis=1
         ).ffill().dropna()
 
-        # Drop any ticker column that is all-NaN after alignment (edge case)
-        all_nan_cols = [col for col in close_df.columns if close_df[col].isna().all()]
-        if all_nan_cols:
-            logger.warning("Dropping tickers with all-NaN after alignment: %s", all_nan_cols)
-            close_df = close_df.drop(columns=all_nan_cols)
-
         # Use only tickers that survived alignment
         active_tickers = list(close_df.columns)
+        if not active_tickers:
+            raise ValueError(
+                "No se pudo obtener datos alineados para ningún ticker en el período indicado."
+            )
 
         window = 60  # bars of lookback for each strategy evaluation
 
@@ -206,7 +204,7 @@ class BacktestEngine:
             annualized_return_pct=annualized_agg,
             sharpe_ratio=_safe(agg_stats.get("Sharpe Ratio")),
             max_drawdown_pct=_safe(agg_stats.get("Max Drawdown [%]")),
-            n_trades=sum(r.n_trades for r in per_asset.values()),
+            n_trades=int(agg_stats.get("Total Trades", 0)),
             benchmark_return_pct=portfolio_bh,
             per_asset=per_asset,
         )

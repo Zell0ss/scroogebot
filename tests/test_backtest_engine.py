@@ -85,6 +85,7 @@ def _make_ohlcv(n=200):
 
 def test_backtest_engine_passes_sl_stop_to_vectorbt():
     """When stop_loss_pct is provided, sl_stop=(pct/100) must be passed to vectorbt."""
+    from src.backtest.engine import PortfolioBacktestResult
     engine = BacktestEngine()
     strategy = MagicMock()
     strategy.evaluate.return_value = None   # always-invested mode
@@ -105,14 +106,21 @@ def test_backtest_engine_passes_sl_stop_to_vectorbt():
         patch.object(engine.data, "get_historical", return_value=ohlcv),
         patch("vectorbt.Portfolio.from_signals", side_effect=fake_from_signals),
     ):
-        engine.run("AAPL", strategy, "rsi", period="1y", stop_loss_pct=8.0)
+        result = engine.run(["AAPL"], strategy, "rsi", period="1y", stop_loss_pct=8.0)
 
+    assert isinstance(result, PortfolioBacktestResult), "run() must return a PortfolioBacktestResult"
+    assert result.total_return_pct == 5.0
+    assert result.sharpe_ratio == 1.0
+    assert result.max_drawdown_pct == 5.0
+    assert result.n_trades == 3
+    assert "AAPL" in result.per_asset
     assert "sl_stop" in captured, "sl_stop must be passed to Portfolio.from_signals"
     assert abs(captured["sl_stop"] - 0.08) < 1e-9, f"sl_stop must be 0.08, got {captured['sl_stop']}"
 
 
 def test_backtest_engine_no_sl_stop_when_pct_is_none():
     """When stop_loss_pct is None, sl_stop must NOT be passed to vectorbt."""
+    from src.backtest.engine import PortfolioBacktestResult
     engine = BacktestEngine()
     strategy = MagicMock()
     strategy.evaluate.return_value = None
@@ -133,6 +141,10 @@ def test_backtest_engine_no_sl_stop_when_pct_is_none():
         patch.object(engine.data, "get_historical", return_value=ohlcv),
         patch("vectorbt.Portfolio.from_signals", side_effect=fake_from_signals),
     ):
-        engine.run("AAPL", strategy, "rsi", period="1y", stop_loss_pct=None)
+        result = engine.run(["AAPL"], strategy, "rsi", period="1y", stop_loss_pct=None)
 
+    assert isinstance(result, PortfolioBacktestResult), "run() must return a PortfolioBacktestResult"
+    assert result.total_return_pct == 5.0
+    assert result.n_trades == 3
+    assert "AAPL" in result.per_asset
     assert "sl_stop" not in captured, f"sl_stop must NOT be passed when pct is None. Got: {captured}"

@@ -16,8 +16,6 @@ from src.strategies.safe_haven import SafeHavenStrategy
 
 logger = logging.getLogger(__name__)
 
-sign = lambda v: "+" if v >= 0 else ""
-
 
 def _fp(val: float, decimals: int = 1) -> str:
     """Format percentage safely — returns 'N/A' for NaN or infinite values."""
@@ -142,7 +140,7 @@ async def cmd_backtest(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         loop = asyncio.get_running_loop()
         sl_pct = float(basket.stop_loss_pct) if basket.stop_loss_pct else None
         try:
-            backtest_result = await loop.run_in_executor(
+            backtest_result: PortfolioBacktestResult = await loop.run_in_executor(
                 None, engine.run, tickers, strategy, basket.strategy, period, sl_pct
             )
         except Exception as e:
