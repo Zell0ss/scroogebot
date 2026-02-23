@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from src.db.base import async_session_factory
 from src.db.models import Basket, BasketAsset, Asset, User, Position
-from src.backtest.engine import BacktestEngine
+from src.backtest.engine import BacktestEngine, PortfolioBacktestResult
 from src.strategies.stop_loss import StopLossStrategy
 from src.strategies.ma_crossover import MACrossoverStrategy
 from src.strategies.rsi import RSIStrategy
@@ -137,26 +137,43 @@ async def cmd_backtest(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             parse_mode="Markdown",
         )
         engine = BacktestEngine()
+        tickers = [a.ticker for a in assets]
 
-        lines = [f"📊 *Backtest:* `{basket.name}` ({period})\n   Estrategia: `{basket.strategy}`\n"]
-        for asset in assets:
-            try:
-                loop = asyncio.get_event_loop()
-                sl_pct = float(basket.stop_loss_pct) if basket.stop_loss_pct else None
-                r = await loop.run_in_executor(
-                    None, engine.run, asset.ticker, strategy, basket.strategy, period, sl_pct
-                )
-                alpha = r.total_return_pct - r.benchmark_return_pct
-                lines += [
-                    f"*{asset.ticker}*",
-                    f"  Rentabilidad: {_fp(r.total_return_pct)}  (B&H: {_fp(r.benchmark_return_pct)},  α: {_fp(alpha)})",
-                    f"  Sharpe: {_ff(r.sharpe_ratio)}  |  Max DD: {_fp(-r.max_drawdown_pct)}",
-                    f"  Operaciones: {r.n_trades}  |  Win rate: {_fp(r.win_rate_pct, 0)}",
-                    "",
-                ]
-            except Exception as e:
-                logger.error(f"Backtest error {asset.ticker}: {e}")
-                lines.append(f"❌ {asset.ticker}: {e}\n")
+        loop = asyncio.get_event_loop()
+        sl_pct = float(basket.stop_loss_pct) if basket.stop_loss_pct else None
+        try:
+            result = await loop.run_in_executor(
+                None, engine.run, tickers, strategy, basket.strategy, period, sl_pct
+            )
+        except Exception as e:
+            logger.error("Backtest error for %s: %s", basket.name, e)
+            await msg.edit_text(f"❌ Error en backtest de `{basket.name}`: {e}", parse_mode="Markdown")
+            return
+
+        alpha_portfolio = result.total_return_pct - result.benchmark_return_pct
+        n_assets = len(result.per_asset)
+
+        lines = [
+            f"📊 *Backtest:* `{basket.name}` ({period})",
+            f"   Estrategia: `{basket.strategy}`",
+            "",
+            f"*CARTERA* ({n_assets} activos)",
+            f"  Rentabilidad: {_fp(result.total_return_pct)}  (B&H: {_fp(result.benchmark_return_pct)},  α: {_fp(alpha_portfolio)})",
+            f"  Sharpe: {_ff(result.sharpe_ratio)}  |  Max DD: {_fp(-result.max_drawdown_pct)}",
+            f"  Operaciones: {result.n_trades}",
+            "",
+            "*DESGLOSE*",
+        ]
+
+        for ticker, r in result.per_asset.items():
+            alpha = r.total_return_pct - r.benchmark_return_pct
+            lines += [
+                f"*{ticker}*",
+                f"  Rentabilidad: {_fp(r.total_return_pct)}  (B&H: {_fp(r.benchmark_return_pct)},  α: {_fp(alpha)})",
+                f"  Sharpe: {_ff(r.sharpe_ratio)}  |  Max DD: {_fp(-r.max_drawdown_pct)}",
+                f"  Operaciones: {r.n_trades}  |  Win rate: {_fp(r.win_rate_pct, 0)}",
+                "",
+            ]
 
         await msg.edit_text("\n".join(lines), parse_mode="Markdown")
 
