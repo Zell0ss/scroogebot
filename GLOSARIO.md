@@ -140,6 +140,38 @@ Bull markets. Cada año que el mercado sube un 20%, el conservador pierde esa op
 **Lo que pasa en ese 5% malo.** El CVaR responde a "y si estoy en ese 5% de peores casos, ¿cuánto pierdo de media?". Si el CVaR es -21.8%, en los escenarios catastróficos pierdes de media un 21.8%. Es el número que debes mirar antes de decidir cuánto dinero real estás dispuesto a poner en juego.
 
 ---
+Aquí tienes una explicación clara y práctica de lo que significan esas métricas en un análisis de Montecarlo aplicado a un activo financiero. Te lo presento de forma ordenada para que puedas interpretar rápidamente qué te está diciendo la simulación.
+
+---
+
+# 📊 Interpretación de las métricas del análisis de Montecarlo
+
+## **Mediana**
+- La **mediana** es el rendimiento en el que el 50% de los escenarios simulan un resultado peor y el otro 50% un resultado mejor.
+- Que sea **0.0%** indica que, en la mitad de las simulaciones, el activo no gana nada o incluso podría perder, y en la otra mitad gana algo.
+
+---
+
+## **Rango 80%: n% a m%**
+- Este rango suele representar el intervalo entre los percentiles 10 y 90.
+- Significa que **el 80% de los escenarios simulados** caen entre **n% y +m%**.
+- En otras palabras:
+  - Si n>0 es muy raro que el activo pierda (porque el límite inferior es 0.0%).
+  - También es raro que gane más de m%.
+- da idea de la **volatilidad** y el **rendimiento esperado**.
+
+---
+
+#### **Peor caso 5%**
+- Este valor corresponde al **percentil 5**, es decir, el rendimiento que solo se supera en el 95% de los escenarios.
+- Que sea **0.0%** implica que incluso en los peores escenarios simulados, el activo no pierde dinero.
+---
+
+#### **Probabilidad de pérdida**
+- Indica que **solo en el n% de las simulaciones** el rendimiento fue negativo.
+
+
+---
 ### 2.3 Los tests
 ---
 #### 🎲 Monte Carlo
