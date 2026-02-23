@@ -1,8 +1,28 @@
-# FUTURE — ScroogeBot observability roadmap
+# FUTURE — ScroogeBot notes and known issues
 
-Ideas and improvement notes for the Prometheus metrics layer and beyond.
+Ideas, improvement notes, and known bugs to fix eventually.
 
 ---
+
+## Known bugs
+
+### `/eliminarcesta` — `p.ticker` en Position no existe
+
+`src/bot/handlers/admin.py`, función `cmd_eliminarcesta`, en el bloque de posiciones abiertas:
+
+```python
+tickers = ", ".join(p.ticker for p in open_positions)
+```
+
+`Position` no tiene campo `ticker` — solo `asset_id`. Este código nunca se ejecuta en la práctica
+porque el comando bloquea antes de llegar ahí (la cesta con posiciones abiertas no se puede eliminar),
+pero si algún día se refactoriza hay que cambiarlo a un join con `Asset`.
+
+Fix: cambiar la query a `select(Position, Asset).join(Asset, ...)` y usar `asset.ticker`.
+
+---
+
+## Observability roadmap
 
 ## What is implemented today
 

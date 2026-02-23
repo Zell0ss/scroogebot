@@ -6,7 +6,7 @@ from telegram.ext import ContextTypes, CommandHandler
 from sqlalchemy import select
 
 from src.db.base import async_session_factory
-from src.db.models import Asset, Basket, User
+from src.db.models import Asset, Basket, BasketMember, Position, User
 from src.data.yahoo import YahooDataProvider
 from src.orders.paper import PaperTradingExecutor
 from src.bot.audit import log_command
@@ -135,6 +135,90 @@ async def _handle_order(update: Update, context, order_type: str) -> None:
             await log_command(update, cmd, False, err, raw_args)
 
 
+async def cmd_liquidarcesta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Usage: /liquidarcesta <nombre> — vende todas las posiciones abiertas (OWNER)."""
+    if not update.message or not context.args:
+        await update.message.reply_text("Uso: `/liquidarcesta <nombre>`", parse_mode="Markdown")
+        return
+
+    basket_name = " ".join(context.args)
+
+    async with async_session_factory() as session:
+        caller_result = await session.execute(select(User).where(User.tg_id == update.effective_user.id))
+        caller = caller_result.scalar_one_or_none()
+        if not caller:
+            await update.message.reply_text("Usa /start primero.")
+            return
+
+        basket_result = await session.execute(
+            select(Basket).where(Basket.name == basket_name, Basket.active == True)
+        )
+        basket = basket_result.scalar_one_or_none()
+        if not basket:
+            await update.message.reply_text(f"Cesta '{basket_name}' no encontrada.")
+            return
+
+        owner_check = await session.execute(
+            select(BasketMember).where(
+                BasketMember.basket_id == basket.id,
+                BasketMember.user_id == caller.id,
+                BasketMember.role == "OWNER",
+            )
+        )
+        if not owner_check.scalar_one_or_none():
+            await update.message.reply_text("Solo el OWNER puede liquidar una cesta.")
+            return
+
+        pairs_result = await session.execute(
+            select(Position, Asset)
+            .join(Asset, Asset.id == Position.asset_id)
+            .where(Position.basket_id == basket.id, Position.quantity > 0)
+        )
+        # Materialise to plain values before any commit expires ORM objects
+        positions_data = [
+            {
+                "asset_id": asset.id,
+                "ticker": asset.ticker,
+                "quantity": pos.quantity,
+                "avg_price": pos.avg_price,
+            }
+            for pos, asset in pairs_result.all()
+        ]
+
+        if not positions_data:
+            await update.message.reply_text(
+                f"`{basket_name}` no tiene posiciones abiertas.", parse_mode="Markdown"
+            )
+            return
+
+        lines = [f"💰 *Liquidación:* `{basket_name}`\n"]
+        total_recovered = Decimal("0")
+
+        for item in positions_data:
+            ticker = item["ticker"]
+            try:
+                price_obj = _provider.get_current_price(ticker)
+                await _executor.sell(
+                    session, basket.id, item["asset_id"], caller.id,
+                    ticker, item["quantity"], price_obj.price,
+                    triggered_by="MANUAL",
+                )
+                recovered = item["quantity"] * price_obj.price
+                total_recovered += recovered
+                pct = (price_obj.price - item["avg_price"]) / item["avg_price"] * 100
+                sign = "+" if pct >= 0 else ""
+                lines.append(
+                    f"✅ *{ticker}*: {item['quantity']} × {price_obj.price:.2f}"
+                    f"  ({sign}{pct:.1f}% vs entrada {item['avg_price']:.2f})"
+                )
+            except Exception as e:
+                logger.error("Liquidation error %s/%s: %s", basket_name, ticker, e)
+                lines.append(f"❌ *{ticker}*: {e}")
+
+        lines.append(f"\n💵 Cash recuperado: {total_recovered:.2f}")
+        await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+
+
 async def cmd_compra(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await _handle_order(update, context, "BUY")
 
@@ -147,4 +231,5 @@ def get_handlers():
     return [
         CommandHandler("compra", cmd_compra),
         CommandHandler("vende", cmd_vende),
+        CommandHandler("liquidarcesta", cmd_liquidarcesta),
     ]
