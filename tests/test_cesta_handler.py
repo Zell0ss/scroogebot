@@ -62,7 +62,8 @@ async def test_cesta_shows_stop_loss_pct_when_set():
 
     session = _make_session(
         _exec_scalar(basket),   # basket lookup
-        _exec_scalars([]),       # assets
+        _exec_scalars([]),       # basket_assets (BasketAsset — empty → personal basket)
+        _exec_all([]),           # pos_pairs (Position — empty positions)
         _exec_all([]),           # members
     )
 
@@ -86,8 +87,9 @@ async def test_cesta_does_not_show_stop_loss_when_none():
 
     session = _make_session(
         _exec_scalar(basket),
-        _exec_scalars([]),
-        _exec_all([]),
+        _exec_scalars([]),       # basket_assets (empty → personal basket)
+        _exec_all([]),           # pos_pairs (empty positions)
+        _exec_all([]),           # members
     )
 
     update = _make_update()

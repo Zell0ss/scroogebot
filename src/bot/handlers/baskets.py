@@ -4,7 +4,7 @@ from telegram.ext import ContextTypes, CommandHandler
 from sqlalchemy import select
 
 from src.db.base import async_session_factory
-from src.db.models import Basket, BasketAsset, Asset, BasketMember, User
+from src.db.models import Basket, BasketAsset, Asset, BasketMember, Position, User
 
 logger = logging.getLogger(__name__)
 
@@ -34,11 +34,23 @@ async def cmd_cesta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             await update.message.reply_text(f"Cesta '{name}' no encontrada.")
             return
 
-        assets_result = await session.execute(
+        # Predefined assets (model baskets)
+        basket_assets = (await session.execute(
             select(Asset)
             .join(BasketAsset, BasketAsset.asset_id == Asset.id)
             .where(BasketAsset.basket_id == basket.id, BasketAsset.active == True)
-        )
+        )).scalars().all()
+
+        # Open positions (personal baskets — no BasketAsset entries)
+        if not basket_assets:
+            pos_pairs = (await session.execute(
+                select(Position, Asset)
+                .join(Asset, Asset.id == Position.asset_id)
+                .where(Position.basket_id == basket.id, Position.quantity > 0)
+            )).all()
+        else:
+            pos_pairs = []
+
         members_result = await session.execute(
             select(BasketMember, User)
             .join(User, BasketMember.user_id == User.id)
@@ -51,8 +63,14 @@ async def cmd_cesta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             f"Cash: {basket.cash:.2f}€",
             "\n*Assets:*",
         ]
-        for a in assets_result.scalars().all():
-            lines.append(f"  • {a.ticker} ({a.market})")
+        if basket_assets:
+            for a in basket_assets:
+                lines.append(f"  • {a.ticker} ({a.market})")
+        elif pos_pairs:
+            for pos, asset in pos_pairs:
+                lines.append(f"  • {asset.ticker} ({pos.quantity:.4f} acc @ {pos.avg_price:.2f})")
+        else:
+            lines.append("  Sin posiciones abiertas")
         lines.append("\n*Miembros:*")
         for m, u in members_result.all():
             lines.append(f"  • @{u.username or u.first_name} [{m.role}]")
