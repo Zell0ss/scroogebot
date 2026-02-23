@@ -34,7 +34,7 @@ class PortfolioBacktestResult:
     annualized_return_pct: float
     sharpe_ratio: float
     max_drawdown_pct: float
-    n_trades: int            # sum across all tickers
+    n_trades: int            # trades executed in the cash-sharing grouped simulation
     benchmark_return_pct: float   # equal-weight B&H average
     # Per-asset breakdown
     per_asset: dict[str, BacktestResult]
