@@ -75,14 +75,19 @@ async def _handle_order(update: Update, context, order_type: str) -> None:
         caller_result = await session.execute(select(User).where(User.tg_id == update.effective_user.id))
         caller = caller_result.scalar_one_or_none()
 
-        # Resolve asset
+        # Resolve asset — auto-create if ticker is valid but not yet in DB
         asset_result = await session.execute(select(Asset).where(Asset.ticker == ticker))
         asset = asset_result.scalar_one_or_none()
         if not asset:
-            err = f"Ticker {ticker} no está en ninguna cesta."
-            await update.message.reply_text(err)
-            await log_command(update, cmd, False, err, raw_args)
-            return
+            info = _provider.get_ticker_info(ticker)
+            asset = Asset(
+                ticker=ticker,
+                name=info["name"],
+                market=info["market"],
+                currency=price_obj.currency,
+            )
+            session.add(asset)
+            await session.flush()   # assign asset.id before using it below
 
         # Resolve basket
         if basket_override:

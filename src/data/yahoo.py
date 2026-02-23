@@ -43,6 +43,26 @@ class YahooDataProvider(DataProvider):
             raise ValueError(f"ATR({period}) no calculable para {ticker}")
         return Decimal(str(round(float(clean.iloc[-1]), 4)))
 
+    def get_ticker_info(self, ticker: str) -> dict:
+        """Return name and market for auto-creating an Asset record.
+
+        No network call — market is inferred from ticker suffix so the
+        market-hours guard works correctly for new tickers.
+        """
+        ticker_upper = ticker.upper()
+
+        if ticker_upper.endswith(".MC"):
+            market = "IBEX"
+        elif ticker_upper.endswith(".L"):
+            market = "LSE"
+        else:
+            market = "NYSE"
+
+        return {
+            "name": ticker,      # full name not in fast_info; ticker is fine
+            "market": market,
+        }
+
     def search_yahoo(self, query: str, max_results: int = 8) -> list:
         """Search Yahoo Finance by name or ticker. Returns list[SearchResult]."""
         from src.data.models import SearchResult
