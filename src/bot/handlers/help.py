@@ -48,6 +48,7 @@ COMMAND_LIST = [
     ("estrategia", "cesta [nueva]", "Ver o cambiar estrategia de una cesta (OWNER)"),
     ("nuevacesta", "nombre estrategia", "Crear nueva cesta (cualquier usuario)"),
     ("eliminarcesta", "nombre", "Desactivar cesta sin posiciones (OWNER)"),
+    ("liquidarcesta", "nombre", "Vender todas las posiciones de una cesta (OWNER)"),
 
     # --- Admin ---
     ("__header__", "", "🛠 *Admin*"),

@@ -665,7 +665,9 @@ Compara el `/backtest 1y` de tu *Mi_Apuesta* con el *Modelo RSI*: si tu cesta ba
 
 ### Liquidar las cestas de prueba
 
-Para borrar una cesta, primero hay que cerrar todas sus posiciones. El bot **no permite eliminar cestas con posiciones abiertas** — es una protección deliberada para que no "hagas desaparecer" una posición sin cerrarla explícitamente:
+Para borrar una cesta, primero hay que cerrar todas sus posiciones. El bot **no permite eliminar cestas con posiciones abiertas** — es una protección deliberada para que no "hagas desaparecer" una posición sin cerrarla explícitamente.
+
+Puedes venderlas una a una:
 
 ```
 /sel Mi_Ahorro
@@ -673,10 +675,13 @@ Para borrar una cesta, primero hay que cerrar todas sus posiciones. El bot **no 
 /vende SAN.MC 15
 /vende GLD 5
 /vende MSFT 3
+```
 
-/sel Mi_Apuesta
-/vende NVDA 5
-/vende AAPL 8
+O usar el atajo que vende todo de una vez (solo el OWNER):
+
+```
+/liquidarcesta Mi_Ahorro
+/liquidarcesta Mi_Apuesta
 ```
 
 Ahora sí:
