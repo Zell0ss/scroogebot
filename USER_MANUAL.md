@@ -209,6 +209,30 @@ Desactiva (soft-delete) una cesta. Solo el **OWNER** puede hacerlo, y únicament
 
 ---
 
+### `/liquidarcesta <nombre>`
+
+Vende todas las posiciones abiertas de una cesta al precio de mercado actual. Solo el **OWNER** puede ejecutarlo. El nombre de la cesta es obligatorio.
+
+```
+/liquidarcesta TechGrowth
+```
+
+**Ejemplo de salida:**
+```
+💰 Liquidación: TechGrowth
+
+✅ AAPL: 10 × 185.32  (+5.2% vs entrada 176.20)
+✅ MSFT: 5 × 420.10  (-1.3% vs entrada 425.70)
+❌ NVDA: error obteniendo precio
+
+💵 Cash recuperado: 3.953,70
+```
+
+- Si alguna venta falla (error de precio, etc.), el resto continúa igualmente.
+- Una vez liquidada, la cesta queda con posiciones a cero y puede eliminarse con `/eliminarcesta`.
+
+---
+
 ## Órdenes
 
 > Las órdenes se ejecutan al precio de mercado actual (paper trading).
@@ -365,20 +389,33 @@ Ejecuta un backtest histórico de cada cesta activa con su estrategia configurad
 
 **Períodos válidos:** `1mo` `3mo` `6mo` `1y` (defecto) `2y`
 
-**Muestra por activo:**
-- Rentabilidad de la estrategia vs. B&H y alpha (α)
-- Ratio de Sharpe
-- Máximo drawdown
-- Número de operaciones y win rate
+**Muestra un resumen agregado de la cartera y después el desglose por activo:**
+
+- Rentabilidad media igual-ponderada vs. B&H y alpha (α)
+- Ratio de Sharpe medio · Máximo drawdown (peor activo)
+- Total de operaciones (suma de todos los activos)
+- Por activo: rentabilidad, Sharpe, drawdown, operaciones y win rate
 
 **Ejemplo de salida:**
 ```
 📊 Backtest: Conservadora (1y)
+   Estrategia: ma_crossover
 
+CARTERA (3 activos)
+  Rentabilidad: +12.1%  (B&H: +10.3%,  α: +1.8%)
+  Sharpe: 0.89  |  Max DD: -11.4%
+  Operaciones: 18
+
+DESGLOSE
 AAPL
   Rentabilidad: +18.4%  (B&H: +14.2%,  α: +4.2%)
   Sharpe: 1.34  |  Max DD: -8.6%
-  Operaciones: 12  |  Win rate: 67%
+  Operaciones: 8  |  Win rate: 67%
+
+MSFT
+  Rentabilidad: +9.2%  (B&H: +8.1%,  α: +1.1%)
+  Sharpe: 0.71  |  Max DD: -11.4%
+  Operaciones: 6  |  Win rate: 50%
 ```
 
 > El backtest puede tardar unos segundos dependiendo del número de activos.
@@ -511,6 +548,7 @@ Las alertas no se repiten hasta que cambie el estado del activo.
 | `/estrategia <cesta> [estrategia] [%]` | Ver o cambiar estrategia / stop loss | Registrado / OWNER |
 | `/nuevacesta <nombre> <estrategia> [%]` | Crear nueva cesta (stop loss opcional) | Registrado |
 | `/eliminarcesta <nombre>` | Desactivar cesta | OWNER |
+| `/liquidarcesta <nombre>` | Vender todas las posiciones de una cesta | OWNER |
 | `/register <id> <user>` | Pre-registrar usuario | OWNER |
 | `/adduser <@user> <ROL> <cesta>` | Añadir usuario a cesta | OWNER |
 | `/watchlist` | Ver watchlist personal | OWNER |
