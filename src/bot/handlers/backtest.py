@@ -139,10 +139,10 @@ async def cmd_backtest(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         engine = BacktestEngine()
         tickers = [a.ticker for a in assets]
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         sl_pct = float(basket.stop_loss_pct) if basket.stop_loss_pct else None
         try:
-            result = await loop.run_in_executor(
+            backtest_result = await loop.run_in_executor(
                 None, engine.run, tickers, strategy, basket.strategy, period, sl_pct
             )
         except Exception as e:
@@ -150,22 +150,22 @@ async def cmd_backtest(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             await msg.edit_text(f"❌ Error en backtest de `{basket.name}`: {e}", parse_mode="Markdown")
             return
 
-        alpha_portfolio = result.total_return_pct - result.benchmark_return_pct
-        n_assets = len(result.per_asset)
+        alpha_portfolio = backtest_result.total_return_pct - backtest_result.benchmark_return_pct
+        n_assets = len(backtest_result.per_asset)
 
         lines = [
             f"📊 *Backtest:* `{basket.name}` ({period})",
             f"   Estrategia: `{basket.strategy}`",
             "",
             f"*CARTERA* ({n_assets} activos)",
-            f"  Rentabilidad: {_fp(result.total_return_pct)}  (B&H: {_fp(result.benchmark_return_pct)},  α: {_fp(alpha_portfolio)})",
-            f"  Sharpe: {_ff(result.sharpe_ratio)}  |  Max DD: {_fp(-result.max_drawdown_pct)}",
-            f"  Operaciones: {result.n_trades}",
+            f"  Rentabilidad: {_fp(backtest_result.total_return_pct)}  (B&H: {_fp(backtest_result.benchmark_return_pct)},  α: {_fp(alpha_portfolio)})",
+            f"  Sharpe: {_ff(backtest_result.sharpe_ratio)}  |  Max DD: {_fp(-backtest_result.max_drawdown_pct)}",
+            f"  Operaciones: {backtest_result.n_trades}",
             "",
             "*DESGLOSE*",
         ]
 
-        for ticker, r in result.per_asset.items():
+        for ticker, r in backtest_result.per_asset.items():
             alpha = r.total_return_pct - r.benchmark_return_pct
             lines += [
                 f"*{ticker}*",
