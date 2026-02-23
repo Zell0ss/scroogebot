@@ -37,7 +37,7 @@ class PortfolioBacktestResult:
     n_trades: int            # sum across all tickers
     benchmark_return_pct: float   # equal-weight B&H average
     # Per-asset breakdown
-    per_asset: dict  # dict[str, BacktestResult]  (ticker → BacktestResult)
+    per_asset: dict[str, BacktestResult]
 
 
 def _make_entries_for_exit_only(
@@ -148,11 +148,12 @@ class BacktestEngine:
             return v if math.isfinite(v) else default
 
         # Step 7: Compute per-asset BacktestResult
+        per_ticker_cash = 10_000 / len(active_tickers)
         per_asset: dict[str, BacktestResult] = {}
         for t in active_tickers:
             pf_single = vbt.Portfolio.from_signals(
                 close_df[t], entries_df[t], exits_df[t],
-                init_cash=10_000, freq="1D",
+                init_cash=per_ticker_cash, freq="1D",
                 **sl_kwargs,
             )
             single_stats = pf_single.stats()
