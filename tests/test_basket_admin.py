@@ -46,6 +46,13 @@ def _exec_scalars(values: list):
     return r
 
 
+def _exec_all(pairs: list):
+    """Build an execute-result mock whose .all() returns a list of tuples/pairs."""
+    r = MagicMock()
+    r.all.return_value = pairs
+    return r
+
+
 def _wrap(session):
     """Wrap a session in an async context manager mock."""
     cm = MagicMock()
@@ -240,7 +247,7 @@ async def test_eliminarcesta_ok():
         _exec(caller),
         _exec(basket),
         _exec(owner_membership),
-        _exec_scalars([]),          # no open positions
+        _exec_all([]),              # no open positions (Position, Asset) pairs
     )
 
     update = _make_update()
@@ -267,12 +274,13 @@ async def test_eliminarcesta_with_positions():
     caller = MagicMock(id=1)
     basket = MagicMock(id=10, name="TechGrowth", active=True)
     owner_membership = MagicMock()
-    open_pos = [MagicMock(ticker="AAPL"), MagicMock(ticker="SAN.MC")]
+    pos_aapl  = MagicMock(); asset_aapl  = MagicMock(ticker="AAPL")
+    pos_san   = MagicMock(); asset_san   = MagicMock(ticker="SAN.MC")
     session = _make_session(
         _exec(caller),
         _exec(basket),
         _exec(owner_membership),
-        _exec_scalars(open_pos),
+        _exec_all([(pos_aapl, asset_aapl), (pos_san, asset_san)]),
     )
 
     update = _make_update()

@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 from src.db.base import async_session_factory
 from sqlalchemy import desc
-from src.db.models import User, Basket, BasketMember, CommandLog, Watchlist, Position
+from src.db.models import Asset, User, Basket, BasketMember, CommandLog, Watchlist, Position
 from src.bot.audit import log_command
 
 STRATEGY_MAP = {
@@ -462,17 +462,17 @@ async def cmd_eliminarcesta(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             await update.message.reply_text("Solo el OWNER puede eliminar una cesta.")
             return
 
-        positions_result = await session.execute(
-            select(Position).where(
-                Position.basket_id == basket.id,
-                Position.quantity > 0,
-            )
+        pairs_result = await session.execute(
+            select(Position, Asset)
+            .join(Asset, Asset.id == Position.asset_id)
+            .where(Position.basket_id == basket.id, Position.quantity > 0)
         )
-        open_positions = positions_result.scalars().all()
-        if open_positions:
-            tickers = ", ".join(p.ticker for p in open_positions)
+        open_pairs = pairs_result.all()
+        if open_pairs:
+            tickers = ", ".join(asset.ticker for _, asset in open_pairs)
             await update.message.reply_text(
-                f"❌ No se puede eliminar: `{basket_name}` tiene posiciones abiertas ({tickers}).",
+                f"❌ No se puede eliminar: `{basket_name}` tiene posiciones abiertas ({tickers}).\n"
+                f"Usa `/liquidarcesta {basket_name}` para cerrarlas primero.",
                 parse_mode="Markdown",
             )
             return
