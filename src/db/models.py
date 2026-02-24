@@ -19,6 +19,7 @@ class User(Base):
     username: Mapped[str | None] = mapped_column(String(100))
     first_name: Mapped[str | None] = mapped_column(String(100))
     active_basket_id: Mapped[int | None] = mapped_column(ForeignKey("baskets.id"), nullable=True)
+    advanced_mode: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
     memberships: Mapped[list[BasketMember]] = relationship(back_populates="user")
