@@ -39,7 +39,7 @@ async def cmd_estado(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     alerts_parts: list[str] = []
     total_alerts = 0
     for mf in REGISTRY.collect():
-        if mf.name == "scroogebot_alerts_generated_total":
+        if mf.name == "scroogebot_alerts_generated":
             for sample in mf.samples:
                 if sample.name == "scroogebot_alerts_generated_total" and sample.value > 0:
                     count = int(sample.value)
@@ -60,7 +60,7 @@ async def cmd_estado(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     # --- Commands breakdown (successful only, sorted by frequency) ---
     cmd_counts: dict[str, int] = {}
     for mf in REGISTRY.collect():
-        if mf.name == "scroogebot_commands_total":
+        if mf.name == "scroogebot_commands":
             for sample in mf.samples:
                 if (
                     sample.name == "scroogebot_commands_total"
