@@ -54,3 +54,57 @@ async def test_build_explanation_returns_none_on_api_failure():
         result = await engine._build_explanation("rsi", "SELL", "RSI saliendo...", ctx)
 
     assert result is None
+
+
+@pytest.mark.asyncio
+async def test_notify_advanced_mode_does_not_call_anthropic():
+    """When user.advanced_mode=True, _notify must NOT call AsyncAnthropic."""
+    from unittest.mock import patch, AsyncMock, MagicMock
+    from decimal import Decimal
+    from src.alerts.engine import AlertEngine
+    from src.alerts.market_context import MarketContext
+    from src.db.models import BasketMember, User
+
+    engine = AlertEngine()
+
+    # Give engine a mock app with a bot
+    mock_app = MagicMock()
+    mock_app.bot.send_message = AsyncMock()
+    engine.app = mock_app
+
+    # Build a minimal Alert mock
+    alert = MagicMock()
+    alert.id = 42
+    alert.basket_id = 1
+    alert.signal = "SELL"
+    alert.strategy = "rsi"
+    alert.reason = "RSI saliendo de zona de sobrecompra (72.1)"
+    alert.price = Decimal("4.18")
+
+    ctx = _make_ctx(confidence=0.7)
+
+    # User with advanced_mode=True
+    advanced_user = MagicMock(spec=User)
+    advanced_user.tg_id = 999
+    advanced_user.advanced_mode = True
+
+    member = MagicMock(spec=BasketMember)
+
+    # Mock the session to return the advanced user
+    mock_result = MagicMock()
+    mock_result.all.return_value = [(member, advanced_user)]
+    mock_session = MagicMock()
+    mock_session.execute = AsyncMock(return_value=mock_result)
+    mock_cm = MagicMock()
+    mock_cm.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_cm.__aexit__ = AsyncMock(return_value=False)
+
+    with patch("src.alerts.engine.async_session_factory", return_value=mock_cm), \
+         patch("src.alerts.engine.AsyncAnthropic") as mock_anthropic_cls:
+
+        await engine._notify(alert, "MiCesta", "SAN.MC", ctx)
+
+    # AsyncAnthropic should never have been instantiated
+    mock_anthropic_cls.assert_not_called()
+    # But the message should still have been sent
+    mock_app.bot.send_message.assert_called_once()
