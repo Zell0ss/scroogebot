@@ -43,7 +43,7 @@ scroogebot_alert_scans_total{result="skipped_closed"} 48.0
 scroogebot_alerts_generated_total{signal="BUY",strategy="rsi"} 2.0
 scroogebot_scan_duration_seconds_sum 4.37
 scroogebot_market_open{market="NYSE"} 1.0
-scroogebot_market_open{market="IBEX"} 0.0
+scroogebot_market_open{market="BME"} 0.0
 scroogebot_market_open{market="LSE"} 1.0
 scroogebot_commands_total{command="/compra",success="true"} 3.0
 ```

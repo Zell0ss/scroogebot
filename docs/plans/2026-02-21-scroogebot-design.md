@@ -196,7 +196,7 @@ A **Basket** (cesta) is the central entity. Each basket has an active strategy, 
 - **MariaDB for all environments** (seb01): test schema prefixed or using transactions with rollback in tests
 - **pydantic-settings** validates `.env` + `config.yaml` at startup — fails fast if misconfigured
 - **Domain models separate from ORM models**: `portfolio/models.py` for business logic, `db/models.py` for persistence
-- **APScheduler 3.x**: market-aware scheduling (IBEX 17:30 CET, NYSE 22:00 CET), polling only during active hours
+- **APScheduler 3.x**: market-aware scheduling (BME 17:30 CET, NYSE 22:00 CET), polling only during active hours
 - **Currency conversion**: `EURUSD=X` via yfinance for EUR portfolio valuation
 - **Anthropic API key**: reserved for event-driven LLM strategy in v2, not used in PoC
 

@@ -267,7 +267,6 @@ class AlertEngine:
                 "\nExplica en 2-3 frases cortas y en español:\n"
                 "1. Qué significa esta señal técnicamente.\n"
                 "2. Por qué es relevante ahora según los indicadores.\n"
-                "3. Un recordatorio breve de que es paper trading (sin dinero real).\n"
                 "Sé conciso y no uses markdown."
             )
 

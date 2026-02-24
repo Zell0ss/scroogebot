@@ -18,7 +18,7 @@ https://github.com/Zell0ss/scroogebot
   Shows ticker + quantity + avg_price for personal basket positions.
 - **`/compra` blocks unknown tickers** ("no está en ninguna cesta"):
   If ticker is valid (Yahoo Finance returns price) but not in Asset table,
-  auto-create the Asset with market inferred from suffix (.MC→IBEX, .L→LSE, else NYSE).
+  auto-create the Asset with market inferred from suffix (.MC→BME, .L→LSE, else NYSE).
 
 ### New features:
 - **`/liquidarcesta nombre`**: Sells all open positions in a basket at market price.
