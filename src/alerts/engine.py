@@ -16,6 +16,7 @@ from src.strategies.ma_crossover import MACrossoverStrategy
 from src.strategies.rsi import RSIStrategy
 from src.strategies.bollinger import BollingerStrategy
 from src.strategies.safe_haven import SafeHavenStrategy
+from src.alerts.market_context import MarketContext, compute_market_context
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +74,7 @@ class AlertEngine:
             )
             positions = result.all()
 
-            new_alerts: list[tuple[Alert, str]] = []
+            new_alerts: list[tuple[Alert, str, MarketContext]] = []
             expired_alerts: list[Alert] = []
             for pos, asset in positions:
                 try:
@@ -127,7 +128,11 @@ class AlertEngine:
                         status="PENDING",
                     )
                     session.add(alert)
-                    new_alerts.append((alert, asset.ticker))
+                    market_ctx = compute_market_context(
+                        asset.ticker, historical.data, price_obj.price,
+                        pos, basket.cash, signal.action, signal.confidence,
+                    )
+                    new_alerts.append((alert, asset.ticker, market_ctx))
                     alerts_generated_total.labels(
                         strategy=basket.strategy, signal=signal.action
                     ).inc()
@@ -137,13 +142,13 @@ class AlertEngine:
 
             if new_alerts:
                 await session.flush()  # assign IDs before notify
-                for alert, ticker in new_alerts:
-                    await self._notify(alert, basket.name, ticker)
+                for alert, ticker, market_ctx in new_alerts:
+                    await self._notify(alert, basket.name, ticker, market_ctx)
 
             if new_alerts or expired_alerts:
                 await session.commit()
 
-    async def _notify(self, alert: Alert, basket_name: str, ticker: str) -> None:
+    async def _notify(self, alert: Alert, basket_name: str, ticker: str, market_ctx: MarketContext | None = None) -> None:
         from telegram import InlineKeyboardButton, InlineKeyboardMarkup
         from src.db.models import BasketMember, User
 
