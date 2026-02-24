@@ -32,11 +32,8 @@ async def test_build_explanation_returns_text():
     mock_response = MagicMock()
     mock_response.content = [MagicMock(text="El RSI ha tocado sobrecompra...")]
 
-    with patch("src.alerts.engine.AsyncAnthropic") as mock_cls:
-        mock_client = MagicMock()
-        mock_client.messages.create = AsyncMock(return_value=mock_response)
-        mock_cls.return_value = mock_client
-        result = await engine._build_explanation("rsi", "SELL", "RSI saliendo...", ctx)
+    engine._anthropic_client.messages.create = AsyncMock(return_value=mock_response)
+    result = await engine._build_explanation("rsi", "SELL", "RSI saliendo...", ctx)
 
     assert result == "El RSI ha tocado sobrecompra..."
 
@@ -47,11 +44,8 @@ async def test_build_explanation_returns_none_on_api_failure():
     engine = AlertEngine()
     ctx = _make_ctx()
 
-    with patch("src.alerts.engine.AsyncAnthropic") as mock_cls:
-        mock_client = MagicMock()
-        mock_client.messages.create = AsyncMock(side_effect=Exception("timeout"))
-        mock_cls.return_value = mock_client
-        result = await engine._build_explanation("rsi", "SELL", "RSI saliendo...", ctx)
+    engine._anthropic_client.messages.create = AsyncMock(side_effect=Exception("timeout"))
+    result = await engine._build_explanation("rsi", "SELL", "RSI saliendo...", ctx)
 
     assert result is None
 
@@ -59,13 +53,12 @@ async def test_build_explanation_returns_none_on_api_failure():
 @pytest.mark.asyncio
 async def test_notify_advanced_mode_does_not_call_anthropic():
     """When user.advanced_mode=True, _notify must NOT call AsyncAnthropic."""
-    from unittest.mock import patch, AsyncMock, MagicMock
-    from decimal import Decimal
-    from src.alerts.engine import AlertEngine
-    from src.alerts.market_context import MarketContext
     from src.db.models import BasketMember, User
 
     engine = AlertEngine()
+
+    # Spy on the already-created client's messages.create
+    engine._anthropic_client.messages.create = AsyncMock()
 
     # Give engine a mock app with a bot
     mock_app = MagicMock()
@@ -99,12 +92,10 @@ async def test_notify_advanced_mode_does_not_call_anthropic():
     mock_cm.__aenter__ = AsyncMock(return_value=mock_session)
     mock_cm.__aexit__ = AsyncMock(return_value=False)
 
-    with patch("src.alerts.engine.async_session_factory", return_value=mock_cm), \
-         patch("src.alerts.engine.AsyncAnthropic") as mock_anthropic_cls:
-
+    with patch("src.alerts.engine.async_session_factory", return_value=mock_cm):
         await engine._notify(alert, "MiCesta", "SAN.MC", ctx)
 
-    # AsyncAnthropic should never have been instantiated
-    mock_anthropic_cls.assert_not_called()
+    # messages.create should never have been called for an advanced_mode user
+    engine._anthropic_client.messages.create.assert_not_called()
     # But the message should still have been sent
     mock_app.bot.send_message.assert_called_once()

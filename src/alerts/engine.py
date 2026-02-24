@@ -34,6 +34,7 @@ class AlertEngine:
     def __init__(self, telegram_app=None):
         self.data = YahooDataProvider()
         self.app = telegram_app
+        self._anthropic_client = AsyncAnthropic()
 
     async def scan_all_baskets(self) -> None:
         """Called by scheduler every N minutes."""
@@ -189,10 +190,10 @@ class AlertEngine:
             else:
                 pos_line = "Posición: sin entrada previa"
 
-            sma20_s = f"{ctx.sma20:.2f}" if ctx.sma20 else "N/D"
-            sma50_s = f"{ctx.sma50:.2f}" if ctx.sma50 else "N/D"
-            rsi_s   = f"{ctx.rsi14:.1f}" if ctx.rsi14 else "N/D"
-            atr_s   = f"{ctx.atr_pct:.1f}%" if ctx.atr_pct else "N/D"
+            sma20_s = f"{ctx.sma20:.2f}" if ctx.sma20 is not None else "N/D"
+            sma50_s = f"{ctx.sma50:.2f}" if ctx.sma50 is not None else "N/D"
+            rsi_s   = f"{ctx.rsi14:.1f}" if ctx.rsi14 is not None else "N/D"
+            atr_s   = f"{ctx.atr_pct:.1f}%" if ctx.atr_pct is not None else "N/D"
 
             lines = [
                 f"{icon} *{basket_name}* — {alert.strategy}",
@@ -243,11 +244,11 @@ class AlertEngine:
         Returns None if the API call fails so the alert is still sent without it.
         """
         try:
-            client = AsyncAnthropic()
-            sma20_s = f"{ctx.sma20:.2f}" if ctx.sma20 else "N/D"
-            sma50_s = f"{ctx.sma50:.2f}" if ctx.sma50 else "N/D"
-            rsi_s   = f"{ctx.rsi14:.1f}" if ctx.rsi14 else "N/D"
-            atr_s   = f"{ctx.atr_pct:.1f}%" if ctx.atr_pct else "N/D"
+            client = self._anthropic_client
+            sma20_s = f"{ctx.sma20:.2f}" if ctx.sma20 is not None else "N/D"
+            sma50_s = f"{ctx.sma50:.2f}" if ctx.sma50 is not None else "N/D"
+            rsi_s   = f"{ctx.rsi14:.1f}" if ctx.rsi14 is not None else "N/D"
+            atr_s   = f"{ctx.atr_pct:.1f}%" if ctx.atr_pct is not None else "N/D"
 
             prompt = (
                 f"Eres un asesor financiero educativo para un inversor principiante que practica paper trading.\n"
