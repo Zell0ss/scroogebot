@@ -52,7 +52,7 @@ class YahooDataProvider(DataProvider):
         ticker_upper = ticker.upper()
 
         if ticker_upper.endswith(".MC"):
-            market = "IBEX"
+            market = "BME"
         elif ticker_upper.endswith(".L"):
             market = "LSE"
         else:

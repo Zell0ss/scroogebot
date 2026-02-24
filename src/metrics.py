@@ -7,7 +7,7 @@ Metrics exposed:
   scroogebot_alert_scans_total        counter  result=completed|skipped_closed
   scroogebot_alerts_generated_total   counter  strategy=<name>, signal=BUY|SELL
   scroogebot_scan_duration_seconds    histogram
-  scroogebot_market_open              gauge    market=NYSE|IBEX|LSE …
+  scroogebot_market_open              gauge    market=NYSE|BME|LSE …
   scroogebot_commands_total           counter  command=<name>, success=true|false
 """
 import logging
