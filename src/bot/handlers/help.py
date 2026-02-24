@@ -58,6 +58,7 @@ COMMAND_LIST = [
     ("watchlist", "", "Ver tu watchlist personal"),
     ("addwatch", "TICKER Nombre | nota", "Añadir ticker a watchlist"),
     ("logs", "[N]", "Ver últimos N comandos ejecutados (OWNER)"),
+    ("modo", "[avanzado|basico]", "Modo de alertas: técnico conciso o con explicación educativa"),
 ]
 
 

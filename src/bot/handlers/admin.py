@@ -483,6 +483,43 @@ async def cmd_eliminarcesta(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         await update.message.reply_text(f"✅ Cesta `{basket_name}` desactivada.", parse_mode="Markdown")
 
 
+async def cmd_modo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Usage:
+      /modo           — show current mode
+      /modo avanzado  — enable advanced mode (concise technical alerts)
+      /modo basico    — enable basic mode (alerts with Haiku explanation)
+    """
+    if not update.message:
+        return
+    async with async_session_factory() as session:
+        result = await session.execute(select(User).where(User.tg_id == update.effective_user.id))
+        user = result.scalar_one_or_none()
+        if not user:
+            await update.message.reply_text("Usa /start primero.")
+            return
+
+        if not context.args:
+            mode = "avanzado (solo datos técnicos)" if user.advanced_mode else "básico (datos + explicación)"
+            await update.message.reply_text(
+                f"Modo actual: *{mode}*\n\n"
+                "Cambia con `/modo avanzado` o `/modo basico`.",
+                parse_mode="Markdown",
+            )
+            return
+
+        arg = context.args[0].lower()
+        if arg == "avanzado":
+            user.advanced_mode = True
+            await session.commit()
+            await update.message.reply_text("✅ Modo *avanzado* activado: recibirás alertas técnicas concisas.", parse_mode="Markdown")
+        elif arg == "basico":
+            user.advanced_mode = False
+            await session.commit()
+            await update.message.reply_text("✅ Modo *básico* activado: recibirás alertas con explicación educativa.", parse_mode="Markdown")
+        else:
+            await update.message.reply_text("Uso: `/modo avanzado` o `/modo basico`", parse_mode="Markdown")
+
+
 def get_handlers():
     return [
         CommandHandler("start", cmd_start),
@@ -494,4 +531,5 @@ def get_handlers():
         CommandHandler("estrategia", cmd_estrategia),
         CommandHandler("nuevacesta", cmd_nuevacesta),
         CommandHandler("eliminarcesta", cmd_eliminarcesta),
+        CommandHandler("modo", cmd_modo),
     ]
