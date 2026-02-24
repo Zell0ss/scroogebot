@@ -38,16 +38,16 @@ class TestIsMarketOpen:
             assert is_market_open("NYSE") is False
 
     def test_ibex_open_during_trading_hours(self):
-        # 10:00 UTC is within IBEX 08:00–16:30
+        # 10:00 UTC is within BME 08:00–16:30
         with patch("src.scheduler.market_hours.datetime") as mock_dt:
             mock_dt.utcnow.return_value = _mock_utcnow(10, 0, weekday=1)
-            assert is_market_open("IBEX") is True
+            assert is_market_open("BME") is True
 
     def test_ibex_closed_after_close(self):
-        # 17:00 UTC is after IBEX close at 16:30
+        # 17:00 UTC is after BME close at 16:30
         with patch("src.scheduler.market_hours.datetime") as mock_dt:
             mock_dt.utcnow.return_value = _mock_utcnow(17, 0, weekday=1)
-            assert is_market_open("IBEX") is False
+            assert is_market_open("BME") is False
 
     def test_closed_on_saturday(self):
         # NYSE would normally be open at 16:00 but it's Saturday
@@ -74,19 +74,19 @@ class TestIsMarketOpen:
 
 class TestAnyMarketOpen:
     def test_returns_true_when_nyse_open(self):
-        # 16:00 UTC — NYSE is open, IBEX is closed
+        # 16:00 UTC — NYSE is open, BME is closed
         with patch("src.scheduler.market_hours.datetime") as mock_dt:
             mock_dt.utcnow.return_value = _mock_utcnow(16, 0, weekday=1)
             assert any_market_open() is True
 
     def test_returns_true_when_ibex_open(self):
-        # 09:00 UTC — IBEX is open, NYSE not yet
+        # 09:00 UTC — BME is open, NYSE not yet
         with patch("src.scheduler.market_hours.datetime") as mock_dt:
             mock_dt.utcnow.return_value = _mock_utcnow(9, 0, weekday=1)
             assert any_market_open() is True
 
     def test_returns_false_when_all_closed(self):
-        # 23:00 UTC — both NYSE and IBEX are closed
+        # 23:00 UTC — both NYSE and BME are closed
         with patch("src.scheduler.market_hours.datetime") as mock_dt:
             mock_dt.utcnow.return_value = _mock_utcnow(23, 0, weekday=1)
             assert any_market_open() is False

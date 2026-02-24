@@ -78,7 +78,7 @@ scheduler:
     NYSE:
       open: "14:30"   # UTC
       close: "21:00"
-    IBEX:
+    BME:
       open: "08:00"
       close: "16:30"
 
@@ -123,11 +123,11 @@ baskets:
     assets:
       - ticker: "SAN.MC"
         name: "Banco Santander"
-        market: IBEX
+        market: BME
         currency: EUR
       - ticker: "IBE.MC"
         name: "Iberdrola"
-        market: IBEX
+        market: BME
         currency: EUR
       - ticker: GLD
         name: "SPDR Gold Shares"

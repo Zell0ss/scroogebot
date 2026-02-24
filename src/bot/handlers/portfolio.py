@@ -42,11 +42,13 @@ async def cmd_valoracion(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 finviz_url = f"https://finviz.com/screener.ashx?v=111&t={tickers}" if tickers else ""
                 yahoo_url = f"https://finance.yahoo.com/quotes/{tickers}/" if tickers else ""
                 sign = lambda v: "+" if v >= 0 else ""
+                activos_value = val.total_value - val.cash
                 lines = [
                     f"📊 `{val.basket_name}` — {datetime.now().strftime('%d %b %Y %H:%M')}",
                     "",
-                    f"💼 Capital invertido: {_fmt(val.total_invested)}€",
-                    f"💰 Valor actual:      {_fmt(val.total_value)}€",
+                    f"💼 Coste a tipo actual: {_fmt(val.total_invested)}€",
+                    f"💵 Cash disponible:     {_fmt(val.cash)}€",
+                    f"💰 Valor actual:        {_fmt(val.total_value)}€  ({_fmt(activos_value)}€ + {_fmt(val.cash)}€ cash)",
                     f"{_arrow(val.total_pnl)} P&L total: {sign(val.total_pnl)}{_fmt(val.total_pnl)}€ ({sign(val.total_pnl_pct)}{_fmt(val.total_pnl_pct)}%)",
                     "", "─" * 33,
                 ]
@@ -55,7 +57,7 @@ async def cmd_valoracion(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     lines.append(
                         f"{p.ticker:<8} {_fmt(p.quantity, 0)} × {sym}{_fmt(p.current_price)} = {_fmt(p.market_value)}€  {_arrow(p.pnl)} {sign(p.pnl_pct)}{_fmt(p.pnl_pct)}%"
                     )
-                lines += ["─" * 33, f"💵 Cash disponible: {_fmt(val.cash)}€"]
+                lines += ["─" * 33]
                 if finviz_url:
                     lines.append(f"\n🔍 [Finviz]({finviz_url})  |  [Yahoo Finance]({yahoo_url})")
                 await msg.edit_text("\n".join(lines), parse_mode="Markdown")
