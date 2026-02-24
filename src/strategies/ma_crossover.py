@@ -20,13 +20,13 @@ class MACrossoverStrategy(Strategy):
         if (fast_ma.iloc[-1] > slow_ma.iloc[-1]) and (fast_ma.iloc[-2] <= slow_ma.iloc[-2]):
             return Signal(
                 action="BUY", ticker=ticker, price=current_price,
-                reason=f"MA{self.fast} crossed above MA{self.slow}",
+                reason=f"MA{self.fast} cruzó al alza MA{self.slow}",
                 confidence=0.75,
             )
         if (fast_ma.iloc[-1] < slow_ma.iloc[-1]) and (fast_ma.iloc[-2] >= slow_ma.iloc[-2]):
             return Signal(
                 action="SELL", ticker=ticker, price=current_price,
-                reason=f"MA{self.fast} crossed below MA{self.slow}",
+                reason=f"MA{self.fast} cruzó a la baja MA{self.slow}",
                 confidence=0.75,
             )
         return None

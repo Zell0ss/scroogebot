@@ -34,7 +34,7 @@ class BollingerStrategy(Strategy):
                 action="BUY",
                 ticker=ticker,
                 price=current_price,
-                reason=f"Price at/below lower Bollinger band ({float(lower):.2f})",
+                reason=f"Precio en/bajo banda inferior Bollinger ({float(lower):.2f})",
                 confidence=0.65,
             )
         if current_price >= upper_d:
@@ -42,7 +42,7 @@ class BollingerStrategy(Strategy):
                 action="SELL",
                 ticker=ticker,
                 price=current_price,
-                reason=f"Price at/above upper Bollinger band ({float(upper):.2f})",
+                reason=f"Precio en/sobre banda superior Bollinger ({float(upper):.2f})",
                 confidence=0.65,
             )
         return None

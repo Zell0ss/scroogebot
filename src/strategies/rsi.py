@@ -33,7 +33,7 @@ class RSIStrategy(Strategy):
                 action="BUY",
                 ticker=ticker,
                 price=current_price,
-                reason=f"RSI exiting oversold zone ({last_rsi:.1f})",
+                reason=f"RSI saliendo de zona de sobreventa ({last_rsi:.1f})",
                 confidence=0.7,
             )
         if prev_rsi >= self.overbought > last_rsi:
@@ -41,7 +41,7 @@ class RSIStrategy(Strategy):
                 action="SELL",
                 ticker=ticker,
                 price=current_price,
-                reason=f"RSI exiting overbought zone ({last_rsi:.1f})",
+                reason=f"RSI saliendo de zona de sobrecompra ({last_rsi:.1f})",
                 confidence=0.7,
             )
         return None

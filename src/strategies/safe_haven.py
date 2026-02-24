@@ -37,7 +37,7 @@ class SafeHavenStrategy(Strategy):
                 action="SELL",
                 ticker=ticker,
                 price=current_price,
-                reason=f"Drawdown {float(drawdown) * 100:.1f}% from peak — rotating to safe haven",
+                reason=f"Drawdown {float(drawdown) * 100:.1f}% desde máximo — rotando a activo refugio",
                 confidence=0.8,
             )
         return None

@@ -94,7 +94,7 @@ class AlertEngine:
                                 action="SELL", ticker=asset.ticker,
                                 price=price_obj.price,
                                 reason=(
-                                    f"Stop-loss {basket.stop_loss_pct}% activado"
+                                    f"Stop-loss de cesta {basket.stop_loss_pct}% activado"
                                     f" (entrada: {pos.avg_price:.2f})"
                                 ),
                                 confidence=Decimal("0.99"),

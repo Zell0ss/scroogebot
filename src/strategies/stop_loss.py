@@ -31,13 +31,13 @@ class StopLossStrategy(Strategy):
         if change <= -self.stop_loss_pct:
             return Signal(
                 action="SELL", ticker=ticker, price=current_price,
-                reason=f"Stop-loss triggered: {change*100:.1f}% drop",
+                reason=f"Stop-loss activado: caída del {abs(float(change)*100):.1f}%",
                 confidence=0.95,
             )
         if change >= self.take_profit_pct:
             return Signal(
                 action="SELL", ticker=ticker, price=current_price,
-                reason=f"Take-profit triggered: {change*100:.1f}% gain",
+                reason=f"Take-profit activado: subida del {float(change)*100:.1f}%",
                 confidence=0.9,
             )
         return None
