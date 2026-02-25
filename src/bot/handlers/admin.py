@@ -8,6 +8,7 @@ from src.db.base import async_session_factory
 from sqlalchemy import desc
 from src.db.models import Asset, User, Basket, BasketMember, CommandLog, Watchlist, Position
 from src.bot.audit import log_command
+from src.utils.text import normalize_basket_name
 
 STRATEGY_MAP = {
     "stop_loss": None,
@@ -126,7 +127,7 @@ async def cmd_adduser(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
     async with async_session_factory() as session:
         basket_result = await session.execute(
-            select(Basket).where(Basket.name == basket_name, Basket.active == True)
+            select(Basket).where(Basket.name_normalized == normalize_basket_name(basket_name), Basket.active == True)
         )
         basket = basket_result.scalar_one_or_none()
         if not basket:
@@ -320,7 +321,7 @@ async def cmd_estrategia(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             return
 
         basket_result = await session.execute(
-            select(Basket).where(Basket.name == basket_name, Basket.active == True)
+            select(Basket).where(Basket.name_normalized == normalize_basket_name(basket_name), Basket.active == True)
         )
         basket = basket_result.scalar_one_or_none()
         if not basket:
@@ -408,13 +409,23 @@ async def cmd_nuevacesta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await update.message.reply_text("Usa /start primero.")
             return
 
-        dup_result = await session.execute(select(Basket).where(Basket.name == basket_name, Basket.active == True))
+        dup_result = await session.execute(
+            select(Basket).where(Basket.name_normalized == normalize_basket_name(basket_name))
+        )
         if dup_result.scalar_one_or_none():
-            await update.message.reply_text(f"Ya existe una cesta con el nombre '{basket_name}'.")
+            await update.message.reply_text(
+                f"❌ Ya existe una cesta llamada `{basket_name}`. "
+                "Los nombres no distinguen mayúsculas ni acentos.",
+                parse_mode="Markdown",
+            )
             return
 
         basket = Basket(
-            name=basket_name, strategy=strategy, active=True, cash=Decimal("10000"),
+            name=basket_name,
+            name_normalized=normalize_basket_name(basket_name),
+            strategy=strategy,
+            active=True,
+            cash=Decimal("10000"),
             stop_loss_pct=Decimal(str(stop_loss_pct)) if stop_loss_pct else None,
         )
         session.add(basket)
@@ -444,7 +455,7 @@ async def cmd_eliminarcesta(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             return
 
         basket_result = await session.execute(
-            select(Basket).where(Basket.name == basket_name, Basket.active == True)
+            select(Basket).where(Basket.name_normalized == normalize_basket_name(basket_name), Basket.active == True)
         )
         basket = basket_result.scalar_one_or_none()
         if not basket:

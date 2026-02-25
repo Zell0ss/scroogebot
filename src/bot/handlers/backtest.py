@@ -7,6 +7,7 @@ from sqlalchemy import select
 
 from src.db.base import async_session_factory
 from src.db.models import Basket, BasketAsset, Asset, User, Position
+from src.utils.text import normalize_basket_name
 from src.backtest.engine import BacktestEngine, PortfolioBacktestResult
 from src.strategies.stop_loss import StopLossStrategy
 from src.strategies.ma_crossover import MACrossoverStrategy
@@ -66,7 +67,7 @@ async def cmd_backtest(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
         if basket_name_arg:
             result = await session.execute(
-                select(Basket).where(Basket.name == basket_name_arg, Basket.active == True)
+                select(Basket).where(Basket.name_normalized == normalize_basket_name(basket_name_arg), Basket.active == True)
             )
             basket = result.scalar_one_or_none()
             if not basket:

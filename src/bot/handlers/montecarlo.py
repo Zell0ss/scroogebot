@@ -7,6 +7,7 @@ from sqlalchemy import select
 
 from src.db.base import async_session_factory
 from src.db.models import Basket, BasketAsset, Asset, Position
+from src.utils.text import normalize_basket_name
 from src.data.yahoo import YahooDataProvider
 from src.backtest.montecarlo import MonteCarloAnalyzer, AssetMonteCarloResult, _profile_line
 from src.strategies.stop_loss import StopLossStrategy
@@ -114,7 +115,7 @@ async def cmd_montecarlo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     async with async_session_factory() as session:
         result = await session.execute(
-            select(Basket).where(Basket.name == basket_name, Basket.active == True)
+            select(Basket).where(Basket.name_normalized == normalize_basket_name(basket_name), Basket.active == True)
         )
         basket = result.scalar_one_or_none()
         if not basket:

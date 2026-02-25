@@ -5,6 +5,7 @@ from sqlalchemy import select
 
 from src.db.base import async_session_factory
 from src.db.models import Basket, BasketAsset, Asset, BasketMember, Position, User
+from src.utils.text import normalize_basket_name
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ async def cmd_cesta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
     name = " ".join(context.args)
     async with async_session_factory() as session:
-        result = await session.execute(select(Basket).where(Basket.name == name, Basket.active == True))
+        result = await session.execute(select(Basket).where(Basket.name_normalized == normalize_basket_name(name), Basket.active == True))
         basket = result.scalar_one_or_none()
         if not basket:
             await update.message.reply_text(f"Cesta '{name}' no encontrada.")
@@ -113,7 +114,7 @@ async def cmd_sel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         # With args → select basket by name
         basket_name = " ".join(context.args)
         basket_result = await session.execute(
-            select(Basket).where(Basket.name == basket_name, Basket.active == True)
+            select(Basket).where(Basket.name_normalized == normalize_basket_name(basket_name), Basket.active == True)
         )
         basket = basket_result.scalar_one_or_none()
         if not basket:

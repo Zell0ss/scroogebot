@@ -337,9 +337,10 @@ async def test_nuevacesta_reply_includes_capital():
 
 
 @pytest.mark.asyncio
-async def test_nuevacesta_dup_check_filters_by_active():
-    """Duplicate-name check must only block if an ACTIVE basket with that name exists.
-    Inactive baskets with the same name must be ignored so names can be reused."""
+async def test_nuevacesta_dup_check_uses_name_normalized():
+    """Duplicate-name check must use name_normalized for global uniqueness
+    (including inactive baskets) so names that differ only in case or accents
+    are treated as duplicates."""
     caller = MagicMock(id=1)
     session = _make_session(_exec(caller), _exec(None))
     session.flush = AsyncMock()
@@ -354,10 +355,10 @@ async def test_nuevacesta_dup_check_filters_by_active():
     # The second execute call is the dup-check query.
     dup_query = session.execute.call_args_list[1][0][0]
     query_str = str(dup_query)
-    # "AND baskets.active" must appear in WHERE — not just in the SELECT column list
-    assert "AND baskets.active" in query_str, (
-        "Duplicate-name check must filter by active=True so inactive baskets "
-        "don't block name reuse. Got query: " + query_str
+    # name_normalized must appear in WHERE for case/accent-insensitive uniqueness
+    assert "name_normalized" in query_str, (
+        "Duplicate-name check must use name_normalized for case/accent-insensitive "
+        "uniqueness. Got query: " + query_str
     )
 
 

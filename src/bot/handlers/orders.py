@@ -10,6 +10,7 @@ from src.db.models import Asset, Basket, BasketMember, Position, User
 from src.data.yahoo import YahooDataProvider
 from src.orders.paper import PaperTradingExecutor
 from src.bot.audit import log_command
+from src.utils.text import normalize_basket_name
 
 logger = logging.getLogger(__name__)
 _provider = YahooDataProvider()
@@ -92,7 +93,7 @@ async def _handle_order(update: Update, context, order_type: str) -> None:
         # Resolve basket
         if basket_override:
             basket_result = await session.execute(
-                select(Basket).where(Basket.name == basket_override, Basket.active == True)
+                select(Basket).where(Basket.name_normalized == normalize_basket_name(basket_override), Basket.active == True)
             )
             basket = basket_result.scalar_one_or_none()
             if not basket:
@@ -156,7 +157,7 @@ async def cmd_liquidarcesta(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             return
 
         basket_result = await session.execute(
-            select(Basket).where(Basket.name == basket_name, Basket.active == True)
+            select(Basket).where(Basket.name_normalized == normalize_basket_name(basket_name), Basket.active == True)
         )
         basket = basket_result.scalar_one_or_none()
         if not basket:
