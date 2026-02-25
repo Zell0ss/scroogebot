@@ -22,7 +22,8 @@ def upgrade() -> None:
 
     def _norm(s: str) -> str:
         nfkd = unicodedata.normalize('NFKD', s.strip())
-        return ''.join(c for c in nfkd if not unicodedata.combining(c)).lower()
+        stripped = ''.join(c for c in nfkd if not unicodedata.combining(c)).lower()
+        return ' '.join(stripped.split())
 
     # Step 1: add as nullable
     op.add_column('baskets', sa.Column('name_normalized', sa.String(100), nullable=True))

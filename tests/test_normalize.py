@@ -20,3 +20,6 @@ def test_enie():
 
 def test_umlaut():
     assert normalize_basket_name("Über") == "uber"
+
+def test_internal_whitespace():
+    assert normalize_basket_name("Renta  Fija") == "renta fija"
