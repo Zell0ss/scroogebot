@@ -490,6 +490,7 @@ async def cmd_eliminarcesta(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
         basket.active = False
         basket.name = f"{basket_name}#{basket.id:x}"
+        basket.name_normalized = f"{normalize_basket_name(basket_name)}#{basket.id:x}"
         await session.commit()
         await update.message.reply_text(f"✅ Cesta `{basket_name}` desactivada.", parse_mode="Markdown")
 
