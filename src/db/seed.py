@@ -3,6 +3,7 @@ import asyncio
 from src.config import app_config
 from src.db.base import async_session_factory, engine
 from src.db.models import Asset, Basket, BasketAsset
+from src.utils.text import normalize_basket_name
 from sqlalchemy import select
 
 
@@ -10,12 +11,13 @@ async def seed() -> None:
     async with async_session_factory() as session:
         for basket_cfg in app_config["baskets"]:
             result = await session.execute(
-                select(Basket).where(Basket.name == basket_cfg["name"])
+                select(Basket).where(Basket.name_normalized == normalize_basket_name(basket_cfg["name"]))
             )
             basket = result.scalar_one_or_none()
             if not basket:
                 basket = Basket(
                     name=basket_cfg["name"],
+                    name_normalized=normalize_basket_name(basket_cfg["name"]),
                     strategy=basket_cfg["strategy"],
                     risk_profile=basket_cfg.get("risk_profile", "moderate"),
                     cash=basket_cfg.get("cash", 0),
