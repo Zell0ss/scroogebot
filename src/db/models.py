@@ -30,6 +30,7 @@ class Basket(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    name_normalized: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     strategy: Mapped[str] = mapped_column(String(50), nullable=False)
     risk_profile: Mapped[str] = mapped_column(String(50), default="moderate")
     cash: Mapped[Decimal] = mapped_column(Numeric(15, 4), default=Decimal("0"))
