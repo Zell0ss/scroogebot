@@ -8,7 +8,12 @@ class Base(DeclarativeBase):
     pass
 
 
-engine = create_async_engine(settings.database_url, echo=False)
+engine = create_async_engine(
+    settings.database_url,
+    echo=False,
+    pool_pre_ping=True,   # reconnect transparently if MariaDB closed idle connection
+    pool_recycle=3600,    # retire connections after 1h (before MariaDB wait_timeout)
+)
 async_session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
 
