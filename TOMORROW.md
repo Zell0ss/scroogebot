@@ -2,53 +2,52 @@
 
 ## Status: Parts 1, 2, 3 + extras COMPLETE ✅
 
-All features implemented, tested (152/152 pass), committed and pushed to
+All features implemented, tested (173/173 pass), committed and pushed to
 https://github.com/Zell0ss/scroogebot
 
 ---
 
-## What was done today (2026-02-23/24 session)
+## What was done today (2026-02-26 session)
 
-### Bug fixes (production bugs caught via Telegram):
-- **`/eliminarcesta` crash** (`AttributeError: Position has no attribute ticker`):
-  Changed query to `select(Position, Asset).join(Asset, ...)` and use `asset.ticker`.
-  Error message now suggests `/liquidarcesta` as prior step.
-- **`/cesta` empty Assets for personal baskets**:
-  Falls back to `Position` records when `BasketAsset` is empty.
-  Shows ticker + quantity + avg_price for personal basket positions.
-- **`/compra` blocks unknown tickers** ("no está en ninguna cesta"):
-  If ticker is valid (Yahoo Finance returns price) but not in Asset table,
-  auto-create the Asset with market inferred from suffix (.MC→BME, .L→LSE, else NYSE).
+### Basket name normalization (main feature):
+- `src/utils/text.py`: `normalize_basket_name()` — NFKD + combining-char strip + lowercase + whitespace collapse
+- `Basket.name_normalized`: new DB column (`unique=True`, `nullable=False`), migration `a621def3cced`
+- `src/db/seed.py`: updated to populate `name_normalized`
+- All 11 basket lookup sites in 5 handlers updated to use `Basket.name_normalized == normalize_basket_name(var)`
+- `/crearcesta` dup check covers all baskets (active + inactive), global uniqueness
+- `/eliminarcesta` now mangles both `basket.name` AND `basket.name_normalized` on soft-delete (consistent reuse)
+- 8 unit tests in `tests/test_normalize.py`
 
-### New features:
-- **`/liquidarcesta nombre`**: Sells all open positions in a basket at market price.
-  OWNER-only, basket name required, Option A (partial failures OK).
-  Shows per-asset % vs avg_price + total cash recovered.
-- **`/estado`**: Live operational metrics without Prometheus HTTP.
-  Shows scans (completed/skipped), alerts by strategy·signal, avg scan duration,
-  market open/closed status, command counts — all from Prometheus REGISTRY directly.
-- **Backtest CARTERA bug fix**: Removed grouped `cash_sharing=True` portfolio.
-  Was causing first ticker to consume all cash when all BUY on same bar.
-  Now uses equal-weight mathematical aggregation from per-asset results.
+### Bug fixes:
+- **`/estado` counters showed 0**: prometheus_client strips `_total` from `mf.name` in `collect()` but preserves it in `sample.name`. Fixed: `mf.name == "scroogebot_commands"` (not `"scroogebot_commands_total"`).
+- **Stale DB connections**: `create_async_engine` had no pool health options. Added `pool_pre_ping=True` + `pool_recycle=3600` in `src/db/base.py`. Prevents `OperationalError: (2013, 'Lost connection to MySQL server')` after idle periods.
 
-### Documentation:
-- `GUIA_INICIO.md`: Added `/liquidarcesta` as fast-path before `/eliminarcesta`
-- `USER_MANUAL.md`: New `/liquidarcesta` section, updated backtest example (CARTERA+DESGLOSE)
-- `FUTURE.md`: Marked `/estado` and `/eliminarcesta` bug as done
-- `GLOSARIO.md`: User added Monte Carlo metric explanations
-- `GUIA_INTERMEDIO.md`: New user-authored guide (cuaderno de laboratorio)
+### Enriched alerts (completed this session — was in progress from previous):
+- `src/alerts/market_context.py`: `MarketContext` dataclass + `compute_market_context()`
+- `AlertEngine._notify()`: enriched message with SMA20/50, RSI14, ATR%, trend, confidence, P&L, suggested_qty
+- Claude Haiku educational explanation for non-advanced users
+- `/modo [avanzado|basico]`: toggle `User.advanced_mode` (default=False)
+- Migration for `User.advanced_mode` boolean column
 
 ---
 
-## Deploy steps (when going to production)
-1. `alembic upgrade head`
-2. `make seed`  ← creates the 5 cestas modelo (idempotent)
-3. `sudo cp scroogebot.service /etc/systemd/system/`
-4. `sudo systemctl daemon-reload && sudo systemctl enable --now scroogebot`
+## Metrics port
+Port **9010** (configured in `config/config.yaml`). Access: `curl http://localhost:9010/metrics`
 
 ---
 
-## Possible next improvements
-- `/estado` in USER_MANUAL.md (not yet documented there)
-- Commission-aware backtest (see FUTURE.md)
+## Deploy steps (production)
+```bash
+alembic upgrade head      # applies basket name_normalized + User.advanced_mode migrations
+sudo systemctl restart scroogebot
+```
+
+---
+
+## Possible next improvements (from FUTURE.md)
+- Commission-aware backtest (`fees=` param to vectorbt)
+- Backtest warmup period fix (extra data before eval window)
+- `/cestas_archivadas` admin command to list soft-deleted baskets
+- Prometheus + Grafana Docker Compose stack
 - LSE market hours edge case (UTC+1 in summer)
+- Additional metrics: `scroogebot_positions_total`, `scroogebot_portfolio_value_eur`

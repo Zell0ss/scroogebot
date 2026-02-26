@@ -16,7 +16,7 @@ y extracción de tickers via `asset.ticker`. El mensaje de error ahora también 
 
 ## Observability roadmap
 
-## What is implemented today
+### What is implemented today
 
 `src/metrics.py` starts a Prometheus-compatible HTTP server (port 9090 by default)
 when the bot launches. Five metrics are exposed:
@@ -32,7 +32,7 @@ when the bot launches. Five metrics are exposed:
 **Verify it works** (while the bot is running):
 
 ```bash
-curl http://localhost:9090/metrics | grep scroogebot
+curl http://localhost:9010/metrics | grep scroogebot
 ```
 
 Example output:
@@ -50,9 +50,9 @@ scroogebot_commands_total{command="/compra",success="true"} 3.0
 
 ---
 
-## Near-term: quick wins
+### Near-term: quick wins
 
-### 1. `/estado` Telegram command ✅ DONE (2026-02-23)
+#### 1. `/estado` Telegram command ✅ DONE (2026-02-23)
 
 Implemented in `src/bot/handlers/estado.py`. Reads from prometheus_client
 `REGISTRY` directly — no HTTP round-trip. Shows scans, alert breakdown by
@@ -61,7 +61,7 @@ and command counts. All counters are cumulative since last bot restart.
 
 ---
 
-### 2. Additional metrics worth adding
+#### 2. Additional metrics worth adding
 
 | Metric | Type | Rationale |
 |---|---|---|
@@ -72,11 +72,11 @@ and command counts. All counters are cumulative since last bot restart.
 
 ---
 
-## Medium-term: Prometheus + Grafana stack
+### Medium-term: Prometheus + Grafana stack
 
 To get time-series charts, set up a local scrape stack with Docker Compose.
 
-### `docker-compose.monitoring.yml`
+#### `docker-compose.monitoring.yml`
 
 ```yaml
 version: "3.8"
@@ -101,7 +101,7 @@ volumes:
   grafana_data:
 ```
 
-### `config/prometheus.yml`
+#### `config/prometheus.yml`
 
 ```yaml
 global:
@@ -116,7 +116,7 @@ scrape_configs:
 Start: `docker compose -f docker-compose.monitoring.yml up -d`
 Grafana: `http://localhost:3000` (admin / admin)
 
-### Useful Grafana panels
+#### Useful Grafana panels
 
 - **Scan throughput**: `rate(scroogebot_alert_scans_total[1h])`
 - **Market uptime ratio**: `scroogebot_market_open{market="NYSE"}`
@@ -126,7 +126,7 @@ Grafana: `http://localhost:3000` (admin / admin)
 
 ---
 
-## Medium-term: Alertmanager rules
+### Medium-term: Alertmanager rules
 
 If the bot goes silent, Alertmanager can page you. Example rule:
 
@@ -228,4 +228,4 @@ similar, o usar fechas explícitas con `yfinance.download(start=..., end=...)`.
 
 ---
 
-*Last updated: 2026-02-21*
+*Last updated: 2026-02-26*

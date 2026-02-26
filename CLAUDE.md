@@ -116,6 +116,7 @@ Currently: 13 tests across config, data, orders, strategies.
 
 - **Part 1** ✅ — Scaffold, config, DB models, seeder, DataProvider, PortfolioEngine, PaperTrading, /compra /vende /valoracion /cartera /historial
 - **Part 2** ✅ — /cestas /cesta /analiza, StopLoss + MACrossover strategies, AlertEngine + APScheduler, /start /adduser roles, alert inline keyboard confirmations, /watchlist /addwatch
-- **Part 3** ⏳ — Backtest engine (vectorbt), RSI/Bollinger/SafeHaven strategies, /backtest command, market-hours scheduler, systemd service
-
-See `docs/plans/2026-02-21-part3-backtest-advanced.md` for Part 3 spec.
+- **Part 3** ✅ — Backtest engine (vectorbt), RSI/Bollinger/SafeHaven strategies, /backtest /montecarlo /sizing /buscar /estado /liquidarcesta
+- **Enriched alerts** ✅ — MarketContext (SMA20/50, RSI14, ATR%, trend), enriched _notify, Haiku explanation, /modo, User.advanced_mode
+- **Basket name normalization** ✅ — name_normalized column, normalize_basket_name() utility, all lookups updated, accent+case insensitive
+- **DB pool health** ✅ — pool_pre_ping=True + pool_recycle=3600 in create_async_engine (prevents stale connection errors)
