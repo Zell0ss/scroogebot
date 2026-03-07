@@ -16,10 +16,10 @@ python scroogebot.py
 
 ## What it does
 
-- `/valoracion` `/cartera` `/historial` — portfolio valuation, positions, order history
+- `/valoracion` `/historial` — portfolio valuation with live prices, order history
 - `/analiza <TICKER>` — RSI(14), SMA20/50, trend, 1-day change
 - `/compra` `/vende` — paper-buy and paper-sell at live market price
-- `/cestas` `/cesta` `/nuevacesta` `/eliminarcesta` — list, inspect, create, and remove baskets
+- `/cesta [nombre]` `/nuevacesta` `/eliminarcesta` — list, inspect, create, and remove baskets
 - `/backtest [período]` — historical strategy simulation (vectorbt)
 - `/montecarlo <cesta>` — Monte Carlo simulator: percentile returns, VaR, CVaR, Sharpe
 - `/sizing <TICKER>` — position sizing with ATR-based stop and risk budget

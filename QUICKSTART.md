@@ -84,7 +84,7 @@ Subsequent users can be added via `/register <tg_id> <username>` from any regist
 /start               → confirms registration
 /sel Cesta Agresiva  → select a basket as active context
 /compra AAPL 3       → paper-buy 3 shares of AAPL
-/cartera             → see open positions
+/valoracion          → see positions with live prices and P&L
 ```
 
 ---

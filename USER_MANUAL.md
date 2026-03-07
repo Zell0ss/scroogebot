@@ -62,26 +62,6 @@ MSFT      5 × $420,10 = 2.100,50€  📉 -1,30%
 
 ---
 
-### `/cartera`
-
-Muestra las posiciones abiertas de todas las cestas: cantidad de acciones y precio medio de entrada.
-
-```
-/cartera
-```
-
-**Ejemplo de salida:**
-```
-💼 Conservadora
-
-AAPL      10.0000 acc @ 176.20
-MSFT       5.0000 acc @ 425.00
-
-💵 Cash: 2.500,00€
-```
-
----
-
 ### `/historial`
 
 Muestra las últimas 10 órdenes ejecutadas en cada cesta, ordenadas de más reciente a más antigua.
@@ -102,12 +82,12 @@ Muestra las últimas 10 órdenes ejecutadas en cada cesta, ordenadas de más rec
 
 ## Cestas
 
-### `/cestas`
+### `/cesta [nombre_cesta]`
 
-Lista todas las cestas activas con su estrategia y perfil de riesgo.
+Sin argumentos, lista todas las cestas activas con su estrategia y perfil de riesgo.
 
 ```
-/cestas
+/cesta
 ```
 
 **Ejemplo de salida:**
@@ -116,13 +96,11 @@ Lista todas las cestas activas con su estrategia y perfil de riesgo.
 
 • Conservadora — estrategia: stop_loss (low)
 • Crecimiento   — estrategia: ma_crossover (medium)
+
+Usa /cesta nombre para ver el detalle de una cesta.
 ```
 
----
-
-### `/cesta <nombre_cesta>`
-
-Muestra el detalle completo de una cesta: activos que la componen, miembros y cash disponible.
+Con nombre, muestra el detalle completo: activos, miembros y cash disponible.
 
 ```
 /cesta Conservadora
@@ -205,7 +183,7 @@ Desactiva (soft-delete) una cesta. Solo el **OWNER** puede hacerlo, y únicament
 → ❌ No se puede eliminar: Cesta Agresiva tiene posiciones abiertas (AAPL, MSFT).
 ```
 
-> La cesta desaparece de `/cestas` y deja de ser escaneada por las alertas automáticas. Los datos históricos se conservan.
+> La cesta desaparece de `/cesta` y deja de ser escaneada por las alertas automáticas. Los datos históricos se conservan.
 
 ---
 
@@ -533,11 +511,9 @@ Las alertas no se repiten hasta que cambie el estado del activo.
 | Comando | Descripción | Requiere |
 |---------|-------------|----------|
 | `/start` | Registrarse / bienvenida | — |
-| `/valoracion [cesta]` | Valoración de cestas | Registrado |
-| `/cartera` | Posiciones abiertas | Registrado |
+| `/valoracion [cesta]` | Valoración de cestas con precios en tiempo real | Registrado |
 | `/historial` | Últimas 10 órdenes | Registrado |
-| `/cestas` | Lista de cestas activas | Registrado |
-| `/cesta <nombre>` | Detalle de una cesta | Registrado |
+| `/cesta [nombre]` | Listar cestas o ver detalle de una | Registrado |
 | `/sel [nombre]` | Ver o seleccionar cesta activa | Registrado |
 | `/compra <TICKER> <qty> [@cesta]` | Comprar acciones | Registrado |
 | `/vende <TICKER> <qty> [@cesta]` | Vender acciones | Registrado |

@@ -166,13 +166,13 @@ El bot confirma: *🗂 Cesta activa: Mi_Ahorro*. Ahora todas las órdenes irán 
 ### 1.7 Ver tu cartera
 
 ```
-/cartera
+/valoracion
 ```
 
-<!-- 📸 Captura: /cartera mostrando posiciones de Mi_Ahorro con cantidades y precio medio -->
+<!-- 📸 Captura: /valoracion mostrando posiciones de Mi_Ahorro con cantidades y precio medio -->
 ![Posiciones de Mi_Ahorro](docs/img/guia/cartera.png)
 
-Ves tus posiciones: cuántas acciones de cada activo y a qué precio medio las compraste. El bot calcula automáticamente el cash restante.
+Ves tus posiciones con el valor actual de mercado, el P&L de cada activo y el cash restante. Los precios se obtienen en tiempo real.
 
 ---
 
@@ -640,7 +640,7 @@ Y es completamente irrelevante para predecir lo que pasará el año que viene.
 ## Módulo 6 — Las Cestas Modelo del Sistema 🗂️
 
 ```
-/cestas
+/cesta
 ```
 
 Verás que el sistema incluye 5 **cestas modelo** además de las tuyas:
