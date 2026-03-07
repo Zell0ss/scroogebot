@@ -19,6 +19,7 @@ from src.bot.handlers.search import get_handlers as search_handlers
 from src.bot.handlers.montecarlo import get_handlers as montecarlo_handlers
 from src.bot.handlers.estado import get_handlers as estado_handlers
 from src.bot.handlers.help import get_handlers as help_handlers
+from src.bot.handlers.fallback import get_handlers as fallback_handlers
 from src.alerts.engine import AlertEngine
 from src.bot.audit import log_command
 from src.db.base import async_session_factory
@@ -159,7 +160,9 @@ async def run() -> None:
         app.add_handler(handler)
     for handler in estado_handlers():
         app.add_handler(handler)
-    for handler in help_handlers():          # ← LAST: fallback catches unknown commands
+    for handler in help_handlers():
+        app.add_handler(handler)
+    for handler in fallback_handlers():      # ← LAST: accent aliases for invalid commands
         app.add_handler(handler)
 
     app.add_handler(CallbackQueryHandler(handle_alert_callback, pattern="^alert:"))
