@@ -7,8 +7,8 @@ from src.bot.handlers.help import _build_help_text, get_handlers
 
 def test_build_help_text_contains_key_commands():
     text = _build_help_text()
-    for cmd in ["/start", "/valoracion", "/cartera", "/historial",
-                "/compra", "/vende", "/cestas", "/cesta", "/analiza",
+    for cmd in ["/start", "/valoracion", "/historial",
+                "/compra", "/vende", "/cesta", "/analiza",
                 "/buscar", "/backtest", "/montecarlo", "/sizing",
                 "/register", "/adduser", "/watchlist", "/addwatch", "/logs"]:
         assert cmd in text, f"{cmd} missing from help text"

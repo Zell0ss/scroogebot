@@ -49,7 +49,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         f"¡Hola {tg_user.first_name}! 🦆 Soy TioGilito.\n"
         "Usa /valoracion para ver el estado de tus cestas.\n"
-        "Usa /cestas para ver las cestas disponibles."
+        "Usa /cesta para ver las cestas disponibles."
     )
     await log_command(update, "/start", True, "User welcomed")
 

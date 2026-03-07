@@ -15,7 +15,6 @@ COMMAND_LIST = [
     # --- Portfolio ---
     ("__header__", "", "💼 *Portfolio*"),
     ("valoracion", "[nombre\\_cesta]", "Valor actual de las cestas"),
-    ("cartera", "", "Posiciones abiertas"),
     ("historial", "", "Últimas 10 órdenes por cesta"),
 
     # --- Órdenes ---
@@ -25,8 +24,7 @@ COMMAND_LIST = [
 
     # --- Cestas ---
     ("__header__", "", "🗂 *Cestas*"),
-    ("cestas", "", "Listar cestas disponibles"),
-    ("cesta", "nombre", "Detalle de una cesta"),
+    ("cesta", "[nombre]", "Listar cestas o ver detalle de una"),
     ("sel", "[nombre]", "Ver o cambiar cesta activa (el 'prompt' para órdenes)"),
 
     # --- Análisis ---

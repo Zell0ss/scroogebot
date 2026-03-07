@@ -10,22 +10,19 @@ from src.utils.text import normalize_basket_name
 logger = logging.getLogger(__name__)
 
 
-async def cmd_cestas(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    async with async_session_factory() as session:
-        result = await session.execute(select(Basket).where(Basket.active == True))
-        baskets = result.scalars().all()
+async def cmd_cesta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not context.args:
+        async with async_session_factory() as session:
+            result = await session.execute(select(Basket).where(Basket.active == True))
+            baskets = result.scalars().all()
         if not baskets:
             await update.message.reply_text("No hay cestas configuradas.")
             return
         lines = ["🗂 *Cestas disponibles*\n"]
         for b in baskets:
             lines.append(f"• `{b.name}` — estrategia: `{b.strategy}` ({b.risk_profile})")
+        lines.append("\nUsa `/cesta nombre` para ver el detalle de una cesta.")
         await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
-
-
-async def cmd_cesta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not context.args:
-        await update.message.reply_text("Uso: /cesta nombre_cesta")
         return
     name = " ".join(context.args)
     async with async_session_factory() as session:
@@ -131,7 +128,6 @@ async def cmd_sel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 def get_handlers():
     return [
-        CommandHandler("cestas", cmd_cestas),
         CommandHandler("cesta", cmd_cesta),
         CommandHandler("sel", cmd_sel),
     ]

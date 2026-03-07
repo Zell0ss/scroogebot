@@ -66,24 +66,6 @@ async def cmd_valoracion(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 await msg.edit_text(f"❌ Error calculando {basket.name}: {e}")
 
 
-async def cmd_cartera(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    async with async_session_factory() as session:
-        result = await session.execute(select(Basket).where(Basket.active == True))
-        for basket in result.scalars().all():
-            rows = (await session.execute(
-                select(Position, Asset).join(Asset, Position.asset_id == Asset.id)
-                .where(Position.basket_id == basket.id, Position.quantity > 0)
-            )).all()
-            if not rows:
-                await update.message.reply_text(f"`{basket.name}`: sin posiciones.", parse_mode="Markdown")
-                continue
-            lines = [f"💼 `{basket.name}`\n"]
-            for pos, asset in rows:
-                lines.append(f"{asset.ticker:<8} {_fmt(pos.quantity, 4)} acc @ {_fmt(pos.avg_price)}")
-            lines.append(f"\n💵 Cash: {_fmt(basket.cash)}€")
-            await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
-
-
 async def cmd_historial(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     async with async_session_factory() as session:
         result = await session.execute(select(Basket).where(Basket.active == True))
@@ -107,6 +89,5 @@ async def cmd_historial(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 def get_handlers():
     return [
         CommandHandler(["valoracion", "valoración"], cmd_valoracion),
-        CommandHandler("cartera", cmd_cartera),
         CommandHandler("historial", cmd_historial),
     ]
