@@ -88,6 +88,6 @@ async def cmd_historial(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
 def get_handlers():
     return [
-        CommandHandler(["valoracion", "valoración"], cmd_valoracion),
+        CommandHandler("valoracion", cmd_valoracion),
         CommandHandler("historial", cmd_historial),
     ]
